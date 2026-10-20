@@ -1,0 +1,85 @@
+\section{Results}\label{sec:results}
+
+\subsection{Leakage audit results}\label{sec:audit}
+The LLM corpora are template-poor but style-rich. Table~\ref{tab:audit} shows that no GPTGen or SpearGen text is a near-duplicate of another (maximum pairwise TF-IDF cosine 0.36--0.59, against 0.95--1.00 in every human corpus); entity masking collapses no LLM text onto another (masked ratio 1.000), whereas 21\% of CEAS-08 malicious messages become duplicates once URLs and other entities are masked. Opening diversity is a different matter. The 2{,}200 GPTGen phishing messages begin with only 34 distinct masked five-token openings and the 2{,}500 SpearGen messages with 45, and the LLM corpora have an interquartile length range of 142--163 characters against more than 380 for every human source; GPTGen phishing is also longer than GPTGen legitimate mail (Mann--Whitney $p=5.4\times10^{-11}$).
+
+\input{tables/audit.tex}
+
+These artefacts do not hand out the label. A zero-learning rule that predicts the majority label of the first three masked tokens reaches only 0.453 macro-F1 on GPTGen and at most 0.619 on the stream segments (0.619 on D, 0.595 on C), far below the 0.928 that the same rule obtained on our template-composed TurkPhish~v2 corpus \cite{cetlenbik2026}. Authorship, on the other hand, is almost perfectly recoverable: a TF-IDF logistic regression separates LLM-written from human-written \emph{legitimate} mail with 0.9996 macro-F1 under five-fold cross-validation. Any detector can therefore lower its loss on segment~D by learning ``LLM style'' instead of malicious intent. Section~\ref{sec:slices} measures how much each method does so.
+
+\subsection{Stream-level accuracy and label cost}\label{sec:main}
+Adaptation is the dominant factor. Table~\ref{tab:main} shows that the three static detectors end at MCC 0.696--0.768 while every adaptive method exceeds 0.86; SLIDE reaches 0.898 (PR-AUC 0.977, Brier 0.042) after buying 2{,}000 labels, i.e.\ 7.3\% of the 27{,}500 stream labels that the fully supervised methods consume. Online TF-IDF learning is the most accurate method (0.905). ADWIN-triggered (0.898) and Page--Hinkley-triggered (0.897) retraining of the head that SLIDE uses come next. SLIDE thus matches the error-triggered retraining of its own head at 13.75 times fewer labels and stays 0.007 MCC below the best fully supervised detector.
+
+\input{tables/main.tex}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.62\linewidth]{figures/pareto.pdf}
+\caption{Stream MCC against stream labels consumed (mean and 95\% CI over 10 realisations; static methods plotted at one label). Only the label-on-alarm methods lie between the static and the fully supervised clusters; KSWIN-Score buys 3.85 times more labels than SLIDE for a lower MCC. Static-FT and Static-MLP overlap at the bottom left.}
+\label{fig:pareto}
+\end{figure}
+
+Figure~\ref{fig:pareto} places these results on the label-cost axis. KSWIN-Score uses the same purchase size as SLIDE but buys 7{,}700 labels and ends lower (0.881); Periodic retraining with all labels stays below both (0.862). Table~\ref{tab:stats} gives the paired tests. The Friedman test rejects equal performance across the ten methods ($\chi^2_F=81.91$, $p=6.8\times10^{-14}$); with a Nemenyi critical difference of 4.28 ranks, SLIDE (mean rank 3.3) is separated from TFIDF-LR (8.0) and the two static transformer detectors (9.7 and 9.3) but from no adaptive method. The realisation-level Wilcoxon tests are sharper. SLIDE wins all ten paired realisations against the three static detectors and against Periodic retraining, each at the smallest Holm-adjusted $p$-value the design allows (0.0176), and it loses all ten against Online-TFIDF-SGD at the same $p$-value. Against ADWIN-Retrain and PH-Retrain it wins five and six realisations ($p_{\mathrm{Holm}}=1$). Two comparisons sit near the threshold. SLIDE exceeds Online-MLP by 0.007 MCC in eight of ten realisations ($p_{\mathrm{Holm}}=0.039$) and KSWIN-Score by 0.017 in eight of ten, a difference that does not reach significance ($p_{\mathrm{Holm}}=0.059$) because KSWIN-Score varies four times more across realisations.
+
+\input{tables/stats.tex}
+
+The batch-level tests are descriptive. Against the four retraining policies that react to time or to error (Periodic, ADWIN, Page--Hinkley and KSWIN-Score), the 1{,}120 paired batches show no difference ($p^{\mathrm{batch}}_{\mathrm{Holm}}\ge0.36$, $|r_{rb}|\le0.06$), so the stream-level gaps come from a few transition batches, not from a uniform offset. Against Online-MLP the two summaries disagree in sign ($r_{rb}=-0.11$ at batch level): Online-MLP wins slightly more individual batches while SLIDE has the higher pooled MCC, and we claim no advantage over Online-MLP beyond the realisation-level test.
+
+\subsection{Alarm timing against equal-budget controls}\label{sec:controls}
+Timing carries most of the label value. Table~\ref{tab:controls} holds the update rule fixed and varies only when the labels are bought. Spending the same 2{,}000 labels at random batches lowers MCC to 0.786 and segment-D MCC to 0.446 ($p_{\mathrm{Holm}}=0.0078$, the smallest value attainable over four rows), whereas buying them at the first moment that 500 messages of each new segment exist, which requires knowledge of the boundaries, gives 0.902, only 0.004 above SLIDE ($p_{\mathrm{Holm}}=0.059$). The score-based trigger behaves differently. With the SLIDE update, KSWIN on the score reaches 0.891 (7{,}550 labels): it is the best method on the paraphrase segment (0.932) and among the weakest adaptive ones on segment~D (0.766), and its spread across realisations ($\pm0.017$) is almost six times that of SLIDE. Part of the gap between SLIDE and KSWIN-Score in Table~\ref{tab:main} thus comes from the update rule; the remainder, at 3.8 times the label cost, is not significant ($p_{\mathrm{Holm}}=0.557$).
+
+\input{tables/controls.tex}
+
+\subsection{Behaviour at segment boundaries}\label{sec:boundaries}
+Figure~\ref{fig:trajectory} shows where the gaps arise. All methods coincide on segment~A, and the static detectors fall to a batch MCC near 0.2 on the LLM segment~D. SLIDE raised exactly four alarms in each of the ten streams, one per boundary and none inside segment~A: at the first batch of segments B and D in every stream, and one batch after the B$\to$C and D$\to$E boundaries in eight of ten streams. The purchased labels arrive $D=2$ batches after the alarm, and the head is updated in that same batch; until then SLIDE scores with the old head, and the dip at C$\to$D in Fig.~\ref{fig:trajectory} spans those batches. ADWIN and Page--Hinkley watch the delayed error stream instead. They alarm on average 3.5 and 3.6 times per stream, retrain on the last 1{,}000 labels instead of 500 and keep receiving every later label, which explains why they match SLIDE on segment~D with 13.75 times more labels.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.95\linewidth]{figures/trajectory.pdf}
+\caption{Batch MCC along the stream (mean over 10 realisations) and SLIDE alarms per batch (bars, right axis). Dotted lines mark segment boundaries.}
+\label{fig:trajectory}
+\end{figure*}
+
+The two gates play distinct roles (Fig.~\ref{fig:swtrace}). At the 40 alarms the ratio $\widehat{SW}_1/\tau_\alpha$ had a median of 1.18 at A$\to$B, 1.57 at B$\to$C, 2.19 at C$\to$D and 1.33 at D$\to$E; the minimum KS $p$-value never exceeded $8.9\times10^{-5}$ and was below $10^{-7}$ at 36 of the 40 alarms. Over the 750 tests that did not alarm, the SW gate alone would never have fired, whereas the KS gate alone would have fired twelve times. KSWIN on the score stream, by comparison, triggered 15.4 refits per stream for four true changes.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.62\linewidth]{figures/swtrace.pdf}
+\caption{Sliced $W_1$ between reference and test window, calibrated threshold $\tau_\alpha$ and alarms for realisation 0. The threshold is re-estimated whenever the reference is rebuilt after an update; gaps mark batches without a test while the new reference and test window fill.}
+\label{fig:swtrace}
+\end{figure}
+
+\input{tables/segments.tex}
+
+Per-segment MCC (Table~\ref{tab:segments}) separates the two shift types. On the generator shift (D) SLIDE reaches 0.825, level with the error-triggered detectors (0.827) and behind Online-TFIDF-SGD (0.892). On the paraphrase campaign (E) it reaches 0.894, ahead of ADWIN (0.863) and Page--Hinkley (0.856) and level with Online-TFIDF-SGD (0.897) and Online-MLP (0.895). The ablation in Section~\ref{sec:ablation} does not attribute the segment-E advantage to any single term of the objective.
+
+\subsection{Authorship slices}\label{sec:slices}
+The style confound of Section~\ref{sec:audit} is visible in every transformer detector. Table~\ref{tab:slices} shows that SLIDE recovers 88.0\% of LLM-written phishing in segment~D and 93.7\% of paraphrased phishing in segment~E, whereas the static fine-tuned encoder detects 20.7\% and 36.5\%. SLIDE also flags 15.7\% of LLM-written \emph{legitimate} messages in segment~D, against 2.8\% of the human legitimate mail that sits in the same batches. Every transformer head shows the same pattern, with FPR on LLM-written legitimate mail between 6.8\% (Periodic retraining, at lower recall) and 27.0\% (Static-MLP). Online-TFIDF-SGD reaches comparable recall at 4.4\% FPR on that slice. Once it has seen every label, a word-level online model separates intent from style better than any frozen-encoder head here, and this is the largest gap in favour of a baseline that we observe.
+
+\input{tables/slices.tex}
+
+\subsection{Adversarial stress test}\label{sec:stress}
+The stress pool (600 held-out phishing e-mails, Table~\ref{tab:pools}) is scored by each detector as it stands before the stream ($t_0$) and just before segment~E (pre-E), under each attack of Section~\ref{sec:threat}. The paraphraser met the attacker's constraint in most cases. The median MiniLM similarity of the rewrites was 0.912 and 96.6\% reached the 0.70 threshold within three attempts; the remaining 3.4\% keep their original text, as the threat model requires. The median word-level edit fraction was 0.58.
+
+\input{tables/stress.tex}
+
+Table~\ref{tab:stress} supports three observations and one negative result. Paraphrase is the most effective content-preserving attack: T1 lowers SLIDE's detection rate from 0.948 to 0.914 at pre-E and from 0.459 to 0.406 at $t_0$. Character perturbation alone is weak. At $t_0$ higher rates even \emph{raise} detection for every transformer head (0.459 to 0.556 for SLIDE); homoglyphs and zero-width characters are rare in legitimate mail, so they act as a malicious signal. After adaptation SLIDE has the highest detection rate in five of the seven pre-E columns, with 0.914 under T1 and 0.897 under T1$\circ$T2 against 0.897 and 0.874 for ADWIN-Retrain; Online-MLP is ahead at $\epsilon_{\mathrm{char}}=0.20$ (0.912 against 0.907). Benign padding is the negative result. A 400-character legitimate prefix lowers the detection rate of every transformer-based method to 0.046--0.106 at both time points, whereas the TF-IDF models, which read the whole message, keep 0.45--0.62.
+
+\input{tables/cert.tex}
+
+Table~\ref{tab:cert} explains why the certificate of Proposition~\ref{prop:cert} cannot cover these attacks. The median displacement in $\Phi$ ranges from 5.7 (T2 at 0.05) through 11.1 (T1) to 30.8 (T3) standard-deviation units, i.e.\ 21--103\% of the norm of the original representation, while the head certifies at most 43.8\% of the stress e-mails at radius 0.25 and 20.3\% at radius 2. The adversarial term lowers the Lipschitz bound $L_m$ from 6.04 to 5.45 and raises the certified fraction at radii 0.5--2 (from 0.167 to 0.203 at $\epsilon=2$) at unchanged recall. That gain is real but an order of magnitude too small for text-level attacks; the observed robustness to T1 after adaptation comes from the labelled campaign data, not from the certificate.
+
+\subsection{Ablation}\label{sec:ablation}
+Table~\ref{tab:ablation} removes one component at a time. Two components carry the result. Without adaptation the detector stays at the static level (0.698). A drift test on the score alone raises only 1.5 alarms per stream (750 labels) and ends at 0.838; the projections of $\Phi$ are what make the shift visible, and the projections-only test reproduces SLIDE exactly. Of the objective's terms only the adversarial one has a measurable effect, 0.003 MCC consistent across the ten realisations ($p_{\mathrm{Holm}}=0.0176$). Removing the proximal term or the replay buffer changes nothing measurable, and neither does dropping the surprisal features $\psi$ ($|\Delta|\le0.002$, $p_{\mathrm{Holm}}\ge0.22$). Either gate alone still yields about four alarms per stream (2{,}000 labels without the KS gate, 2{,}100 without the SW gate); on this stream the conjunction mainly suppresses the occasional extra alarm.
+
+\input{tables/ablation.tex}
+
+\subsection{Sensitivity}\label{sec:sens}
+SLIDE is insensitive to its test and robustness settings within the ranges of Table~\ref{tab:sens}. Over five realisations, MCC stays between 0.895 and 0.899 for $\epsilon\in[0.25,4]$, $\alpha\in[0.001,0.05]$ and $K\in\{16,256\}$, against 0.896 at the default; only $\alpha=0.05$ (2{,}200 labels) and $K=256$ (2{,}100) buy an extra window. The purchase size is the one lever with a visible trade-off. At $n_\ell=250$ SLIDE spends 1{,}000 labels and loses 0.008 MCC overall and 0.028 on the paraphrase segment; at $n_\ell=1000$ it spends 4{,}000 labels and gains 0.004 overall and 0.024 on that segment.
+
+\input{tables/sensitivity.tex}
+
+\subsection{Computational cost}\label{sec:cost}
+The drift machinery is cheap; the transformers are not. Table~\ref{tab:latency} shows that one drift test costs 77\,ms per 250-message batch in isolation (0.31\,ms per e-mail) and 174\,ms inside the stream, where the reference and window buffers are also maintained; the encoder pass costs 27\,ms per e-mail on four threads and the surprisal model 72\,ms. A SLIDE update with PGD and replay takes 2.3\,s in isolation and 3.8\,s on average inside the stream, four times per stream. The persistent state at full reservoir capacity occupies 6.8\,MB. Since the ablation shows no benefit from $\psi$, dropping the surprisal model would cut the per-message cost by roughly 70\% on this stream.
+
+\input{tables/latency.tex}

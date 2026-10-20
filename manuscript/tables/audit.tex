@@ -1,0 +1,30 @@
+\begin{table}[t]
+\centering
+\caption{Leakage and artefact audit per source and class. Masked ratio: unique entity-masked texts / $n$; Open.$_5$: distinct masked 5-token openings; cos: pairwise TF-IDF cosine (max and 99th percentile, up to 1{,}500 sampled texts); length in characters (median, IQR).}
+\label{tab:audit}
+\scriptsize
+\setlength{\tabcolsep}{2.2pt}
+\begin{tabular}{@{}llrrrrrrr@{}}
+\toprule
+Source & Cl. & $n$ & Masked & Open.$_5$ & cos$_{\max}$ & cos$_{.99}$ & Len. & IQR \\
+\midrule
+Assassin & leg. & 1284 & 0.998 & 535 & 0.966 & 0.103 & 1028 & 1099 \\
+Assassin & mal. & 519 & 0.996 & 391 & 0.998 & 0.113 & 1340 & 1778 \\
+CEAS-08 & leg. & 4660 & 0.993 & 1342 & 0.997 & 0.086 & 1280 & 1734 \\
+CEAS-08 & mal. & 4588 & 0.789 & 1543 & 1.000 & 0.629 & 318 & 387 \\
+Enron & leg. & 4906 & 0.943 & 3478 & 0.977 & 0.064 & 826 & 1326 \\
+Enron & mal. & 4397 & 1.000 & 3389 & 0.991 & 0.061 & 671 & 1062 \\
+GPTGen & leg. & 1200 & 1.000 & 77 & 0.592 & 0.268 & 1496 & 163 \\
+GPTGen & mal. & 2200 & 1.000 & 34 & 0.529 & 0.250 & 1525 & 142 \\
+Ling & leg. & 754 & 1.000 & 652 & 0.988 & 0.059 & 2115 & 2806 \\
+Ling & mal. & 140 & 1.000 & 131 & 0.997 & 0.127 & 1741 & 3668 \\
+SpearGen & mal. & 2500 & 1.000 & 45 & 0.358 & 0.131 & 1195 & 162 \\
+TREC-05 & leg. & 4555 & 0.939 & 2310 & 0.990 & 0.063 & 841 & 1505 \\
+TREC-05 & mal. & 1666 & 0.983 & 1259 & 1.000 & 0.087 & 567 & 931 \\
+TREC-06 & leg. & 1668 & 0.999 & 990 & 0.954 & 0.055 & 874 & 1231 \\
+TREC-06 & mal. & 303 & 0.983 & 249 & 0.996 & 0.103 & 572 & 961 \\
+TREC-07 & leg. & 3373 & 0.982 & 905 & 0.958 & 0.121 & 1304 & 1526 \\
+TREC-07 & mal. & 2087 & 0.981 & 1337 & 0.989 & 0.092 & 730 & 1037 \\
+\bottomrule
+\end{tabular}
+\end{table}

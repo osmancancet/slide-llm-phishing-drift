@@ -1,0 +1,23 @@
+\begin{table}[t]
+\centering
+\caption{Ablation over 10 realisations. $\Delta$: change of mean MCC relative to full SLIDE; $p$: Holm-corrected two-sided Wilcoxon test against full SLIDE on realisation-level MCC.}
+\label{tab:ablation}
+\scriptsize
+\setlength{\tabcolsep}{2.5pt}
+\begin{tabular}{@{}lccccrr@{}}
+\toprule
+Variant & MCC & PR-AUC & MCC (E) & Labels & $\Delta$ & $p_{\mathrm{Holm}}$ \\
+\midrule
+SLIDE & 0.898\,$\pm$\,0.003 & 0.977 & 0.894 & 2000 & -- & -- \\
+SLIDE w/o adversarial term & 0.895\,$\pm$\,0.002 & 0.975 & 0.890 & 2000 & -0.003 & 0.0176 \\
+SLIDE w/o replay & 0.900\,$\pm$\,0.003 & 0.977 & 0.890 & 2000 & +0.002 & 0.527 \\
+SLIDE w/o proximal term & 0.899\,$\pm$\,0.003 & 0.977 & 0.894 & 2000 & +0.001 & 0.223 \\
+SLIDE w/o surprisal $\psi$ & 0.898\,$\pm$\,0.004 & 0.976 & 0.895 & 2000 & -0.000 & 1 \\
+SLIDE w/o KS gate & 0.898\,$\pm$\,0.003 & 0.977 & 0.894 & 2000 & +0.000 & 1 \\
+SLIDE w/o SW gate & 0.899\,$\pm$\,0.003 & 0.976 & 0.900 & 2100 & +0.001 & 0.594 \\
+SLIDE score-only test & 0.838\,$\pm$\,0.010 & 0.950 & 0.843 & 750 & -0.060 & 0.0176 \\
+SLIDE projections-only test & 0.898\,$\pm$\,0.003 & 0.977 & 0.894 & 2000 & +0.000 & 1 \\
+SLIDE w/o adaptation & 0.698\,$\pm$\,0.002 & 0.898 & 0.443 & 0 & -0.200 & 0.0176 \\
+\bottomrule
+\end{tabular}
+\end{table}

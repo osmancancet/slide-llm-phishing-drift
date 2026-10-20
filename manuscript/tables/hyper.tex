@@ -1,0 +1,24 @@
+\begin{table}[t]
+\centering
+\caption{Hyper-parameters (fixed before the stream experiments).}
+\label{tab:hyper}
+\scriptsize
+\begin{tabular}{@{}llr@{}}
+\toprule
+Component & Parameter & Value \\
+\midrule
+Encoder fine-tuning & epochs / batch / learning rate & 2 / 16 / $2\times10^{-5}$ \\
+ & warm-up / schedule & 6\% linear / linear decay, AdamW, wd $0.01$ \\
+ & max.\ tokens $L$ & 128 \\
+Head $h_\theta$ & hidden width / dropout & 256 / 0.1 \\
+ & epochs / batch / learning rate & 30 / 256 / $10^{-3}$ (AdamW) \\
+Objective (Eq.~\ref{eq:ltotal}) & $\lambda_r$ / $\lambda_a$ / $\lambda_p$ & 1.0 / 0.5 / $10^{-3}$ \\
+ & $\epsilon$ / PGD steps $P$ & 1.0 / 3 \\
+Drift test & directions $K$ / level $\alpha$ / null draws $B$ & 64 / 0.01 / 100 \\
+ & $n_R$ / $n_W$ & 1{,}000 / 500 \\
+Policy & alarm window $n_\ell$ / memory per class $c$ & 500 / 1{,}000 \\
+Stream & batch $b$ / delay $D$ / realisations & 250 / 2 / 10 \\
+Attack T1 & accepted similarity / tries / prefix & $\ge 0.70$ / 3 / 600 chars \\
+\bottomrule
+\end{tabular}
+\end{table}

@@ -1,0 +1,10 @@
+# versions used for every number in the paper (CPU build of torch)
+torch==2.14.1
+transformers==5.20.2
+scikit-learn==1.9.1
+scipy==1.18.1
+pandas==3.0.5
+pyarrow==26.0.0
+numpy==2.5.3
+river==0.26.1
+matplotlib==3.11.2

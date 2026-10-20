@@ -1,0 +1,18 @@
+\begin{table}[t]
+\centering
+\caption{Controls that separate the timing of label purchases from the update rule (10 realisations). All rows except KSWIN-Score use the SLIDE update; Budget-Random buys four 500-label windows at random batches, Budget-Oracle buys them as soon as 500 messages of each new segment have arrived. $p_{\mathrm{Holm}}$: two-sided Wilcoxon test against SLIDE on realisation-level MCC, Holm-corrected over the four rows.}
+\label{tab:controls}
+\scriptsize
+\setlength{\tabcolsep}{2.5pt}
+\begin{tabular}{@{}lcccccr@{}}
+\toprule
+Method & MCC & MCC (D) & MCC (E) & Labels & $\Delta$ & $p_{\mathrm{Holm}}$ \\
+\midrule
+SLIDE & 0.898\,$\pm$\,0.003 & 0.825 & 0.894 & 2000 & -- & -- \\
+KSWIN-Score & 0.881\,$\pm$\,0.012 & 0.765 & 0.832 & 7700 & -0.017 & 0.0586 \\
+KSWIN-Score+SLIDE-update & 0.891\,$\pm$\,0.017 & 0.766 & 0.932 & 7550 & -0.007 & 0.557 \\
+Budget-Random & 0.786\,$\pm$\,0.028 & 0.446 & 0.773 & 2000 & -0.112 & 0.00781 \\
+Budget-Oracle & 0.902\,$\pm$\,0.003 & 0.822 & 0.899 & 2000 & +0.004 & 0.0586 \\
+\bottomrule
+\end{tabular}
+\end{table}

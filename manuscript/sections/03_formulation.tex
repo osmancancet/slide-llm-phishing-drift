@@ -1,0 +1,43 @@
+\section{Problem formulation and threat model}\label{sec:formulation}
+
+\subsection{Stream, labels and representation}
+Let $\mathcal{X}$ be the space of e-mail strings (subject line followed by body) and $\mathcal{Y}=\{0,1\}$ with $y=1$ for malicious messages. The gateway observes a stream $\mathcal{S}=\{(x_i,y_i)\}_{i\ge 1}$ in batches $B_t=\{x_i : i\in I_t\}$ of size $b$, drawn from time-indexed joint distributions $P_t(X,Y)$. Scores must be produced for $B_t$ before any of its labels are known (prequential, test-then-train). A label $y_i$ for $i\in I_t$ can be obtained only at batch $t+D$ ($D\ge 1$ is the verification delay) and only if the operator purchases it, at unit cost. A detector is a pair $(f_t,\pi)$ of a scoring function $f_t:\mathcal{X}\to[0,1]$ and a labelling policy $\pi$ that decides which labels to buy. The total label cost after $T$ batches is $C_T(\pi)=\sum_{t\le T}|\pi(t)|$.
+
+Every e-mail is mapped once to a representation $z=\Phi(x)\in\mathbb{R}^{d}$,
+\begin{equation}
+\Phi(x)=\big[\,\Sigma_\phi^{-1/2}(\phi(x)-\mu_\phi)\;;\;\Sigma_\psi^{-1/2}(\psi(x)-\mu_\psi)\,\big],\qquad d=d_\phi+d_\psi ,
+\label{eq:phi}
+\end{equation}
+where $\phi(x)\in\mathbb{R}^{768}$ is the attention-masked mean of the last hidden layer of a DistilRoBERTa encoder fine-tuned on a warm-up window, $\psi(x)\in\mathbb{R}^{4}$ collects the mean, standard deviation, 10th and 90th percentiles of the token surprisal $-\log p_{\mathrm{LM}}(x_k\mid x_{<k})$ under a frozen causal language model, and the diagonal standardisation $(\mu,\Sigma)$ is estimated on the warm-up window only. Both $\phi$ and $\psi$ read the first $L=128$ sub-word tokens. A detection head $h_\theta:\mathbb{R}^d\to\mathbb{R}^2$ produces logits and $f_t(x)=\mathrm{softmax}(h_{\theta_t}(\Phi(x)))_1$; the decision rule is $\hat y=\mathbb{1}[f_t(x)\ge 0.5]$.
+
+\subsection{Drift}
+Write $P_t(X,Y)=P_t(X)\,P_t(Y\mid X)$ and let $Q_t=\Phi_\#P_t(X)$ denote the push-forward of the input marginal onto the representation space. Following the standard taxonomy \cite{lu2019,hinder2024}, \emph{virtual} drift between times $s<t$ is $Q_s\neq Q_t$ with $P_s(Y\mid X)=P_t(Y\mid X)$, and \emph{real} drift is a change of the posterior. A change of the generating mechanism of phishing (a new LLM or a paraphrased campaign) moves $Q_t$, and a detector trained on $Q_s$ is exposed to it whenever $h_{\theta_s}$ has not seen the new region. We quantify the movement with the order-1 Wasserstein distance
+\begin{equation}
+W_1(Q_s,Q_t)=\inf_{\gamma\in\Gamma(Q_s,Q_t)}\int\lVert z-z'\rVert_2\,\mathrm{d}\gamma(z,z'),
+\end{equation}
+and with its sliced version over the unit sphere $\mathbb{S}^{d-1}$,
+\begin{equation}
+SW_1(Q_s,Q_t)=\int_{\mathbb{S}^{d-1}}W_1\big(\theta_\#Q_s,\theta_\#Q_t\big)\,\mathrm{d}\sigma(\theta),\qquad \theta_\#Q(A)=Q(\{z:\langle\theta,z\rangle\in A\}),
+\label{eq:sw}
+\end{equation}
+estimated with $K$ directions $\theta_1,\dots,\theta_K\overset{\mathrm{iid}}{\sim}\sigma$ \cite{kolouri2016}. On each one-dimensional projection the two-sample Kolmogorov--Smirnov statistic is $D_k=\sup_u|\hat F^{R}_{k}(u)-\hat F^{W}_{k}(u)|$, where $\hat F^{R}_{k}$ and $\hat F^{W}_{k}$ are the empirical CDFs of $\langle\theta_k,z\rangle$ on a reference sample $R$ and a test window $W$.
+
+\paragraph{Drift hypotheses} For a reference sample $R\sim Q_s^{\otimes n_R}$ and a test window $W\sim Q_t^{\otimes n_W}$ we test
+\begin{equation}
+H_0:\;Q_s=Q_t\qquad\text{versus}\qquad H_1:\;SW_1(Q_s,Q_t)>\tau ,
+\end{equation}
+at family-wise level $\alpha$. The composite alternative contains an effect-size margin $\tau$ because, at e-mail-gateway volumes, a pure significance test rejects for operationally irrelevant differences \cite{demsar2006}.
+
+\subsection{Threat model}\label{sec:threat}
+The adversary controls the content of malicious messages but neither the gateway with its detector nor the labelling process (no poisoning). The adversary knows that a transformer-based filter is deployed and may query a generative model. We consider transformation families $\mathcal{T}$ applied to a phishing message $x$ with intent $\iota(x)$ and payload (URLs, addresses) preserved:
+\begin{itemize}
+\item[T1] \emph{Neural paraphrase.} Every payload-free sentence in the first $600$ characters is rewritten by a sequence-to-sequence paraphraser. The attacker accepts a rewrite $x'$ only if $\cos\big(e(x),e(x')\big)\ge 1-\epsilon_{\mathrm{sem}}$ with $\epsilon_{\mathrm{sem}}=0.30$ for an independent sentence encoder $e$ (MiniLM), and re-samples up to three times otherwise.
+\item[T2] \emph{Character perturbation.} A fraction $\epsilon_{\mathrm{char}}\in\{0.05,0.10,0.20\}$ of eligible words (length $\ge 4$, payload excluded) receives a Cyrillic homoglyph or a zero-width space, or has two adjacent letters swapped.
+\item[T3] \emph{Benign padding.} A 400-character fragment of a legitimate e-mail is prepended. The prefix pushes the lure towards the end of the $L$-token window that $\phi$ and $\psi$ read, or beyond it.
+\end{itemize}
+In the representation space the attacker's effective budget is $\epsilon_\Phi(x')=\lVert\Phi(x')-\Phi(x)\rVert_2$, which we report empirically rather than assume. The streaming campaign (segment~E, Section~\ref{sec:setup}) uses T1; the stress test uses T1--T3 and the composition T1$\circ$T2. The defender's objective is
+\begin{equation}
+\max_{f,\pi}\;\mathbb{E}\Big[\mathrm{MCC}\big(\{y_i\},\{\mathbb{1}[f_{t(i)}(x_i)\ge .5]\}\big)\Big]\quad\text{s.t.}\quad C_T(\pi)\le \beta T b ,
+\label{eq:objective}
+\end{equation}
+that is, high prequential Matthews correlation under a label budget $\beta$ (fraction of the stream).

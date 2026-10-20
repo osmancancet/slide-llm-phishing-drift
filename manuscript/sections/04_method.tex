@@ -1,0 +1,129 @@
+\section{The SLIDE framework}\label{sec:method}
+
+SLIDE (\emph{Sliced-Wasserstein, Label-budgeted, Drift-adaptive Embedding defence}) has four components (Fig.~\ref{fig:arch}): (i) the hybrid representation $\Phi$ of Eq.~\eqref{eq:phi}; (ii) a robust detection head $h_\theta$ trained with the composite objective of Section~\ref{sec:loss}; (iii) a label-free sliced two-gate drift test on $\Phi$ (Section~\ref{sec:test}); and (iv) a label-on-alarm adaptation policy with a class-balanced replay memory (Section~\ref{sec:policy}). The encoder is fine-tuned once on the warm-up window and then frozen, so the per-message cost of the stream is one encoder pass and one causal-LM pass; everything that adapts operates on $d=772$-dimensional vectors.
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[node distance=5mm and 7mm, every node/.style={font=\scriptsize}, box/.style={draw, rounded corners=2pt, align=center, minimum height=8mm, inner sep=2pt}, lab/.style={font=\tiny, fill=white, inner sep=1pt}, >=Stealth]
+\node[box] (x) {e-mail $x$};
+\node[box, right=of x, yshift=6mm] (enc) {DistilRoBERTa\\ $\phi(x)\in\mathbb{R}^{768}$};
+\node[box, right=of x, yshift=-6mm] (lm) {causal LM\\ $\psi(x)\in\mathbb{R}^{4}$};
+\node[box, right=10mm of x, xshift=26mm] (z) {$z=\Phi(x)$};
+\node[box, right=of z] (h) {robust head\\ $h_\theta$};
+\node[box, right=of h] (s) {score\\ $f_t(x)$};
+\node[box, below=12mm of z] (t) {sliced KS + $SW_1$\\ two-gate test};
+\node[box, below=12mm of h, xshift=16mm] (p) {buy labels of\\ alarm window};
+\node[box, right=10mm of p] (u) {update $\theta$ with\\ $\mathcal{L}_{\mathrm{total}}$, memory $\mathcal{M}$};
+\draw[->] (x) -- (enc); \draw[->] (x) -- (lm); \draw[->] (enc) -- (z); \draw[->] (lm) -- (z);
+\draw[->] (z) -- (h); \draw[->] (h) -- (s); \draw[->] (z) -- node[lab, left]{projections} (t);
+\draw[->] (h.south west) -- node[lab, pos=0.45]{score} (t.north east);
+\draw[->, dashed] (t) -- node[lab, above]{alarm} (p);
+\draw[->, dashed] (p) -- node[lab, above]{$+D$} (u);
+\draw[->, dashed] (u.north) -- node[lab, right, pos=0.4]{new $\theta$} (h.south east);
+\end{tikzpicture}
+\caption{SLIDE data flow. Solid arrows run for every batch; dashed arrows run only after an alarm, when the labels of the alarm window are bought and arrive $D$ batches later.}
+\label{fig:arch}
+\end{figure}
+
+\subsection{Robust head and composite objective}\label{sec:loss}
+The head is a two-layer perceptron $h_\theta(z)=W_2\,\mathrm{GELU}(W_1z+c_1)+c_2$ with $W_1\in\mathbb{R}^{256\times d}$, dropout $0.1$ and $W_2\in\mathbb{R}^{2\times256}$. Given a newly labelled window $\mathcal{S}$ and a replay memory $\mathcal{M}$, with $\theta^{-}$ the parameters in force before the update, SLIDE minimises
+\begin{equation}
+\mathcal{L}_{\mathrm{total}}(\theta)=\underbrace{\mathcal{L}_{\mathrm{cls}}(\theta;\mathcal{S})}_{\text{new concept}}+\lambda_r\underbrace{\mathcal{L}_{\mathrm{cls}}(\theta;\mathcal{M})}_{\text{retention}}+\lambda_a\underbrace{\mathcal{L}_{\mathrm{adv}}(\theta;\mathcal{S}\cup\mathcal{M},\epsilon)}_{\text{robustness}}+\lambda_p\underbrace{\lVert\theta-\theta^{-}\rVert_2^2}_{\text{stability}},
+\label{eq:ltotal}
+\end{equation}
+with the class-weighted cross-entropy
+\begin{equation}
+\mathcal{L}_{\mathrm{cls}}(\theta;\mathcal{A})=-\frac{1}{|\mathcal{A}|}\sum_{(z,y)\in\mathcal{A}}\omega_y\log\mathrm{softmax}\big(h_\theta(z)\big)_y,\qquad \omega_y=\frac{|\mathcal{S}\cup\mathcal{M}|}{2\,|\{(z',y')\in\mathcal{S}\cup\mathcal{M}:y'=y\}|},
+\end{equation}
+and the representation-space adversarial term
+\begin{equation}
+\mathcal{L}_{\mathrm{adv}}(\theta;\mathcal{A},\epsilon)=\frac{1}{|\mathcal{A}|}\sum_{(z,y)\in\mathcal{A}}\max_{\lVert\delta\rVert_2\le\epsilon}\;-\omega_y\log\mathrm{softmax}\big(h_\theta(z+\delta)\big)_y .
+\label{eq:ladv}
+\end{equation}
+The inner maximisation is approximated by $P=3$ steps of normalised projected gradient ascent,
+\begin{equation}
+\delta^{(k+1)}=\Pi_{\mathbb{B}_\epsilon}\!\Big(\delta^{(k)}+\eta\,\frac{\nabla_\delta\ell(h_\theta(z+\delta^{(k)}),y)}{\lVert\nabla_\delta\ell(h_\theta(z+\delta^{(k)}),y)\rVert_2}\Big),\qquad \eta=\tfrac{2.5\,\epsilon}{P},\;\delta^{(0)}=0,
+\end{equation}
+where $\Pi_{\mathbb{B}_\epsilon}$ rescales onto the $\ell_2$ ball. Because $\Phi$ is standardised coordinate-wise, $\epsilon$ is expressed in units of warm-up standard deviations; $\lVert z\rVert_2\approx\sqrt{d}\approx 27.8$ for a typical message, so $\epsilon=1$ corresponds to a relative displacement of about 3.6\%. Real text attacks move $\Phi$ much further (Section~\ref{sec:stress}), which is why $\mathcal{L}_{\mathrm{adv}}$ is a smoothness regulariser for the head and not a defence on its own. The proximal term $\lambda_p\lVert\theta-\theta^-\rVert_2^2$ is an isotropic special case of elastic weight consolidation \cite{kirkpatrick2017}: it keeps the update in a neighbourhood of the previous solution while the replay term retains a class-balanced sample of earlier concepts. At initialisation ($\mathcal{S}$ = warm-up window, $\mathcal{M}=\emptyset$) the stability term is inactive. In every mini-batch the replay sample has the same size as the new-concept sample.
+
+\paragraph{Margin certificate} Let $m_y(z)=h_\theta(z)_y-h_\theta(z)_{1-y}$. Because GELU is $\kappa$-Lipschitz with $\kappa\approx1.129$ and dropout is inactive at inference,
+\begin{equation}
+|m_y(z)-m_y(z')|\le L_m\lVert z-z'\rVert_2,\qquad L_m=\kappa\,\big\lVert (W_2)_{1,:}-(W_2)_{0,:}\big\rVert_2\,\lVert W_1\rVert_2 .
+\label{eq:lip}
+\end{equation}
+\begin{proposition}[Certified invariance]\label{prop:cert}
+If $m_y(z)>L_m\,\epsilon$, then $\arg\max h_\theta(z+\delta)=y$ for every $\lVert\delta\rVert_2\le\epsilon$.
+\end{proposition}
+\begin{proof}
+By Eq.~\eqref{eq:lip}, $m_y(z+\delta)\ge m_y(z)-L_m\lVert\delta\rVert_2>L_m\epsilon-L_m\epsilon=0$.
+\end{proof}
+Proposition~\ref{prop:cert} is a sufficient condition and $L_m$ is a product bound, so the certified fraction it yields is conservative; we report it alongside empirical attack outcomes (Section~\ref{sec:stress}).
+
+\subsection{Label-free sliced two-gate drift test}\label{sec:test}
+SLIDE holds a reference matrix $R\in\mathbb{R}^{n_R\times d}$ of the first $n_R$ unlabelled stream representations scored by the current head (never the data it was fitted on), and a set $\Theta=[\theta_1,\dots,\theta_K]$ of random unit directions drawn once. The detector score $s(z)=f_t$ is appended as projection $K+1$ because it is the one-dimensional summary that the decision rule actually thresholds. After each batch the test window $W$ is formed from the last $n_W$ representations, and a test is run only once at least $n_W$ messages have arrived after $R$ was frozen, so that $W$ and $R$ never share a message. Two gates are evaluated.
+
+\emph{KS gate.} For $j=1,\dots,K+1$ compute the asymptotic two-sample KS $p$-value $p_j$ of $D_j$. The gate fires if the Holm step-down procedure rejects at least one of the $K+1$ hypotheses at level $\alpha$, which is equivalent to $\min_j p_j\le \alpha/(K+1)$.
+
+\emph{SW gate.} Compute $\widehat{SW}_1(R,W)=K^{-1}\sum_{k=1}^K W_1(\theta_{k\#}\hat R,\theta_{k\#}\hat W)$ with one-dimensional $W_1$ evaluated from sorted samples. The threshold $\tau_\alpha$ is the empirical $(1-\alpha)$ quantile of $\widehat{SW}_1(R_1,R_2)$ over $B=100$ random disjoint pairs $R_1,R_2\subset R$ with $|R_1|=|R_2|=\min(n_W,\lfloor n_R/2\rfloor)$. The gate fires if $\widehat{SW}_1(R,W)>\tau_\alpha$.
+
+An alarm requires both gates. The KS gate controls the error rate; the SW gate imposes an effect-size margin calibrated on the reference itself, so that the detector does not react to statistically detectable but small fluctuations.
+
+\begin{proposition}[False-alarm control]\label{prop:fwer}
+Let the rows of $R$ and $W$ be independent draws from the same continuous distribution $Q$ and let $\Theta$ be drawn independently of $(R,W)$. Then, asymptotically in $n_R,n_W$, $\Pr(\text{alarm})\le\alpha$.
+\end{proposition}
+\begin{proof}
+Conditionally on $\Theta$, each projected pair of samples is i.i.d.\ from the same continuous univariate law, so each $p_j$ is asymptotically super-uniform. Holm's procedure controls the family-wise error rate at $\alpha$ under arbitrary dependence among the $p_j$, hence $\Pr(\text{KS gate})\le\alpha$ conditionally on $\Theta$ and therefore unconditionally. The alarm is the conjunction of the KS gate with a second event, so $\Pr(\text{alarm})\le\Pr(\text{KS gate})\le\alpha$. The score projection $s(z)$ is a fixed measurable function of $z$ once the head is fitted on data disjoint from $W$, so the argument covers $j=K+1$.
+\end{proof}
+Proposition~\ref{prop:fwer} bounds the false-alarm probability of a single test. A stream runs about 80 tests, and consecutive windows overlap, so the per-stream false-alarm count is bounded in expectation by $80\alpha=0.8$ only through a union bound; Section~\ref{sec:boundaries} reports the observed count.
+
+\begin{proposition}[Sliced distance as a certificate of shift]\label{prop:sw}
+For any $Q,Q'$ with finite first moments, $SW_1(Q,Q')\le W_1(Q,Q')$, and $SW_1(Q,Q')=0$ if and only if $Q=Q'$. If the conditional expected loss $g(z)=\mathbb{E}[\ell(h_\theta(z),Y)\mid \Phi(X)=z]$ is $L_g$-Lipschitz and the posterior is unchanged (virtual drift), then $|\mathcal{R}_{Q'}(h_\theta)-\mathcal{R}_{Q}(h_\theta)|\le L_g\,W_1(Q,Q')$.
+\end{proposition}
+\begin{proof}
+For fixed $\theta\in\mathbb{S}^{d-1}$ the map $z\mapsto\langle\theta,z\rangle$ is 1-Lipschitz, so for any coupling $\gamma$ of $(Q,Q')$ the image coupling of $(\theta_\#Q,\theta_\#Q')$ satisfies $\int|\langle\theta,z-z'\rangle|\,\mathrm{d}\gamma\le\int\lVert z-z'\rVert\,\mathrm{d}\gamma$; taking the infimum and averaging over $\theta$ gives the inequality. If $SW_1=0$ then $\theta_\#Q=\theta_\#Q'$ for $\sigma$-almost every $\theta$, and by continuity of characteristic functions for all $\theta$, so $Q=Q'$ by the Cram\'er--Wold theorem. The risk bound follows from Kantorovich--Rubinstein duality, $\big|\int g\,\mathrm{d}Q-\int g\,\mathrm{d}Q'\big|\le L_g W_1(Q,Q')$.
+\end{proof}
+Proposition~\ref{prop:sw} explains what an alarm certifies and what it does not. A large $\widehat{SW}_1$ is a lower bound on $W_1$ and therefore on the transport effort separating the two regimes, but a small $SW_1$ does not bound the risk change, and real drift with $Q_s=Q_t$ is invisible to any label-free test. Section~\ref{sec:validity} returns to this limitation.
+
+\paragraph{Calibration remark} The empirical $W_1$ between two samples of sizes $(n,m)$ from the same law concentrates at a rate governed by $\sqrt{1/n+1/m}$. The null pairs used for $\tau_\alpha$ have sizes $(n_W,n_W)$ while the test compares sizes $(n_R,n_W)$ with $n_R=2n_W$, so the calibrated threshold is conservative.
+
+\subsection{Label-on-alarm adaptation}\label{sec:policy}
+When an alarm is raised at batch $t$, SLIDE purchases the labels of the last $\lceil n_\ell/b\rceil$ batches (the alarm window, $n_\ell=500$ messages), which all arrive at $t+D$; labels requested for a batch older than $t$ are therefore not received earlier than the others. Further tests are suspended until then. At $t+D$, as soon as the labels arrive, the head is updated with Eq.~\eqref{eq:ltotal}, warm-started from $\theta^-$, the labelled window is inserted into the memory, and the reference $R$ is rebuilt from the next $n_R$ representations scored by the new head, so that the next test compares post-adaptation data with post-adaptation data. The memory keeps at most $c=1000$ items per class by per-class reservoir sampling, which gives every labelled item seen so far the same inclusion probability. Algorithm~\ref{alg:slide} lists the procedure.
+
+\begin{algorithm}[t]
+\caption{SLIDE prequential detection with label-on-alarm adaptation}\label{alg:slide}
+\small
+\begin{algorithmic}[1]
+\Require warm-up set $\mathcal{W}=\{(x_i,y_i)\}$, encoder $\phi$, LM $p_{\mathrm{LM}}$, $K,\alpha,B,n_R,n_W,n_\ell,c,D,\epsilon,\lambda_r,\lambda_a,\lambda_p$
+\State fine-tune $\phi$ on $\mathcal{W}$; estimate $(\mu,\Sigma)$ on $\mathcal{W}$; $Z_{\mathcal{W}}\gets\Phi(\mathcal{W})$
+\State $\theta\gets\arg\min\mathcal{L}_{\mathrm{total}}$ on $(\mathcal{S}{=}Z_{\mathcal{W}},\mathcal{M}{=}\emptyset)$ with $\lambda_p=0$; $\mathcal{M}\gets\textsc{Reservoir}(Z_{\mathcal{W}},c)$
+\State draw $\Theta\in\mathbb{R}^{d\times K}$ with i.i.d.\ uniform unit columns; mark $R$ stale; $t_{\mathrm{ready}}\gets -\infty$
+\For{$t=1,2,\dots$}
+  \State $Z_t\gets\Phi(B_t)$; \textbf{emit} $f_t=\mathrm{softmax}(h_\theta(Z_t))_1$; append $Z_t$ to the buffer \Comment{test first}
+  \If{$R$ stale}
+    \If{$n_R$ rows are buffered} $R\gets$ last $n_R$ rows; $\tau_\alpha\gets\textsc{Calibrate}(R,B)$; $m\gets 0$ \EndIf
+  \Else
+    \State $m\gets m+b$
+    \If{$m\ge n_W$ \textbf{and} $t>t_{\mathrm{ready}}$}
+      \State $W\gets$ last $n_W$ rows; $p_j\gets\mathrm{KS}(\langle\theta_j,R\rangle,\langle\theta_j,W\rangle)$, $j\le K$; $p_{K+1}\gets\mathrm{KS}(s(R),s(W))$
+      \If{$\min_j p_j\le\alpha/(K+1)$ \textbf{and} $\widehat{SW}_1(R,W)>\tau_\alpha$}
+        \State request labels of batches $t-\lceil n_\ell/b\rceil+1,\dots,t$, due at $t+D$; $t_{\mathrm{ready}}\gets t+D$
+      \EndIf
+    \EndIf
+  \EndIf
+  \If{labels $\mathcal{S}$ are due at $t$}
+    \State $\theta\gets\arg\min_\theta\mathcal{L}_{\mathrm{total}}(\theta;\mathcal{S},\mathcal{M},\theta^-{=}\theta)$ from $\theta^-$; $\mathcal{M}\gets\textsc{Reservoir}(\mathcal{M}\cup\mathcal{S},c)$; mark $R$ stale; clear the buffer
+  \EndIf
+\EndFor
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Complexity}\label{sec:complexity}
+Let $C_\phi$ and $C_\psi$ be the per-message costs of the encoder and LM passes ($\mathcal{O}(L^2 d_{\mathrm{model}}+L d_{\mathrm{model}}^2)$ per layer for a transformer with $L$ tokens), $h=256$ the hidden width and $n=n_R+n_W$.
+
+\begin{proposition}[Per-batch cost]\label{prop:cost}
+Scoring a batch costs $\mathcal{O}\big(b(C_\phi+C_\psi+dh)\big)$ time. One drift test costs $\mathcal{O}\big(n_W dK+Kn\log n\big)$ time, reducible to $\mathcal{O}(n_WdK+K n_W\log n_W+Kn)$ by keeping the projected reference sorted; calibration costs $\mathcal{O}(n_RdK+BKn_R\log n_R)$ once per reference. An update costs $\mathcal{O}\big(E\,(|\mathcal{S}|+\min(|\mathcal{S}|,|\mathcal{M}|))\,(P+1)\,dh\big)$ for $E$ epochs. The persistent state occupies $\mathcal{O}(dh+dK+Kn_R+cd)$ memory.
+\end{proposition}
+\begin{proof}
+Projection of the window is a $(n_W\times d)(d\times K)$ product. For each of the $K+1$ projections the KS statistic and the one-dimensional $W_1$ are computed from the merged order statistics, which costs one sort of $n$ values, or a merge of a pre-sorted reference with a sorted window. Calibration repeats the $W_1$ computation $B$ times on reference subsets. In an update, each epoch visits every item of $\mathcal{S}$ once together with an equally sized replay sample, and each visit costs one forward and backward pass of the head plus $P$ PGD steps, each of which is another forward and backward pass. The state consists of $\theta$, $\Theta$, the projected and raw reference, and the memory.
+\end{proof}
+With $K=64$, $n_R=1000$, $n_W=500$ and $d=772$ the test does not depend on the batch size. Measured in isolation it takes 77\,ms per batch, or 0.31\,ms per e-mail, against 27\,ms per e-mail for the encoder pass on four threads (Section~\ref{sec:cost}); scoring cost is therefore dominated by $C_\phi+C_\psi$, and the drift machinery adds less than one percent to it.

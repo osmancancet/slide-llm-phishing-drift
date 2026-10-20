@@ -1,0 +1,52 @@
+\documentclass[preprint,12pt]{elsarticle}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{booktabs,multirow,array}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{pifont}
+\usepackage{algorithm}
+\usepackage[noend]{algpseudocode}
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta}
+\usepackage[hidelinks]{hyperref}
+\usepackage[a4paper,margin=2.5cm]{geometry}
+
+\newtheorem{proposition}{Proposition}
+\newcommand{\cmark}{\ding{51}}
+\newcommand{\xmark}{\ding{55}}
+\newcommand{\pmark}{$\circ$}
+
+\journal{Computers \& Security}
+
+\begin{document}
+\begin{frontmatter}
+
+\title{SLIDE: label-free sliced-Wasserstein drift detection and budgeted adaptation for LLM-generated phishing in e-mail streams}
+
+\author[mcbu]{Osman Can \c{C}etlenbik\corref{cor1}}
+\ead{osman.cetlenbik@cbu.edu.tr}
+\cortext[cor1]{Corresponding author.}
+\affiliation[mcbu]{organization={Big Data Analytics Program, Department of Statistics, Manisa Technical Sciences Vocational School, Manisa Celal Bayar University},
+            city={Manisa},
+            postcode={45140},
+            country={T\"urkiye}}
+
+\input{sections/00_abstract.tex}
+
+\end{frontmatter}
+
+\input{sections/01_intro.tex}
+\input{sections/02_related.tex}
+\input{sections/03_formulation.tex}
+\input{sections/04_method.tex}
+\input{sections/05_setup.tex}
+\input{sections/06_results.tex}
+\input{sections/07_discussion.tex}
+\input{sections/08_conclusion.tex}
+
+\bibliographystyle{IEEEtran}
+\bibliography{refs}
+
+\end{document}

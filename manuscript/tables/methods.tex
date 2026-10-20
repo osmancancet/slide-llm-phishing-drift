@@ -1,0 +1,23 @@
+\begin{table}[t]
+\centering
+\caption{Compared detectors. ``Labels'' is the supervision consumed during the stream.}
+\label{tab:methods}
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{2.8cm}>{\raggedright\arraybackslash}p{9.5cm}l@{}}
+\toprule
+Method & Description & Labels \\
+\midrule
+TFIDF-LR & word 1--2-gram TF-IDF + logistic regression, warm-up only & none \\
+Static-FT & fine-tuned DistilRoBERTa classifier, frozen & none \\
+Static-MLP & head $h_\theta$ on $\Phi$, cross-entropy, frozen & none \\
+Online-TFIDF-SGD & hashed 1--2-grams, logistic SGD, \texttt{partial\_fit} per delayed batch & all \\
+Online-MLP & $h_\theta$ fine-tuned for 3 epochs on each delayed batch & all \\
+Periodic-Retrain & $h_\theta$ refit on the last 2{,}000 labels every 8 batches & all \\
+ADWIN-Retrain & ADWIN ($\delta=0.002$) on the 0/1 error stream \cite{bifet2007}; refit on last 1{,}000 labels & all \\
+PH-Retrain & Page--Hinkley (threshold 50) on the error stream; refit on last 1{,}000 labels & all \\
+KSWIN-Score & KSWIN ($\alpha=0.005$) \cite{raab2020} on the score stream; on alarm buys $n_\ell$ labels, plain refit & on alarm \\
+\textbf{SLIDE} & sliced two-gate test on $\Phi$; on alarm buys $n_\ell$ labels; $\mathcal{L}_{\mathrm{total}}$ with replay & on alarm \\
+\bottomrule
+\end{tabular}
+\end{table}

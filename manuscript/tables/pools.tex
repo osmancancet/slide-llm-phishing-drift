@@ -1,0 +1,21 @@
+\begin{table}[t]
+\centering
+\caption{Disjoint pools (legitimate/malicious counts). Each realisation samples its segments from these pools.}
+\label{tab:pools}
+\scriptsize
+\setlength{\tabcolsep}{2.5pt}
+\begin{tabular}{@{}lrr>{\raggedright\arraybackslash}p{9cm}@{}}
+\toprule
+Pool & Legit. & Malic. & Sources (legit./malic.) \\
+\midrule
+warm-up & 2295 & 1705 & Assassin 433/175; Enron 1605/1488; Ling 257/42 \\
+segment A & 4649 & 3351 & Assassin 851/344; Enron 3301/2909; Ling 497/98 \\
+segment B & 4474 & 3526 & TREC-05 2119/1455; TREC-06 781/256; TREC-07 1574/1815 \\
+segment C & 3582 & 4418 & CEAS-08 3582/4418 \\
+segment D & 4400 & 3300 & CEAS-08 607/0; GPTGen 900/1500; SpearGen 0/1800; TREC-05 1400/0; TREC-06 507/0; TREC-07 986/0 \\
+segment E (orig.) & 2700 & 0 & CEAS-08 471/0; TREC-05 1036/0; TREC-06 380/0; TREC-07 813/0 \\
+segment E (T1) & 300 & 1500 & CEAS-08 0/119; GPTGen 300/500; SpearGen 0/500; TREC-05 0/149; TREC-06 0/34; TREC-07 0/198 \\
+stress pool & 0 & 600 & CEAS-08 0/51; GPTGen 0/200; SpearGen 0/200; TREC-05 0/62; TREC-06 0/13; TREC-07 0/74 \\
+\bottomrule
+\end{tabular}
+\end{table}

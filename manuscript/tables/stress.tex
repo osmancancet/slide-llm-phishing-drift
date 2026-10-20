@@ -1,0 +1,25 @@
+\begin{table*}[t]
+\centering
+\caption{Stress test on the held-out phishing pool: detection rate (recall at 0.5) before the stream ($t_0$) and at the D$\to$E boundary (pre-E), mean over 10 realisations.}
+\label{tab:stress}
+\scriptsize
+\setlength{\tabcolsep}{2.5pt}
+\resizebox{\textwidth}{!}{\begin{tabular}{@{}lcccccccccccccc@{}}
+\toprule
+ & \multicolumn{7}{c}{$t_0$ (warm-up model)} & \multicolumn{7}{c}{pre-E (after segments A--D)} \\
+\cmidrule(lr){2-8}\cmidrule(lr){9-15}
+Method & orig. & T1 & T2 .05 & T2 .10 & T2 .20 & T3 & T1$\circ$T2 & orig. & T1 & T2 .05 & T2 .10 & T2 .20 & T3 & T1$\circ$T2 \\
+\midrule
+TFIDF-LR & 0.712 & 0.645 & 0.705 & 0.687 & 0.698 & 0.448 & 0.650 & 0.712 & 0.645 & 0.705 & 0.687 & 0.698 & 0.448 & 0.650 \\
+Online-TFIDF-SGD & 0.703 & 0.661 & 0.703 & 0.692 & 0.688 & 0.481 & 0.657 & 0.797 & 0.758 & 0.789 & 0.787 & 0.772 & 0.617 & 0.742 \\
+Static-FT & 0.417 & 0.355 & 0.465 & 0.497 & 0.532 & 0.067 & 0.430 & 0.417 & 0.355 & 0.465 & 0.497 & 0.532 & 0.067 & 0.430 \\
+Static-MLP & 0.462 & 0.407 & 0.509 & 0.527 & 0.556 & 0.103 & 0.480 & 0.462 & 0.407 & 0.509 & 0.527 & 0.556 & 0.103 & 0.480 \\
+Online-MLP & 0.462 & 0.407 & 0.509 & 0.527 & 0.556 & 0.103 & 0.480 & 0.908 & 0.880 & 0.920 & 0.918 & 0.912 & 0.058 & 0.882 \\
+Periodic-Retrain & 0.462 & 0.407 & 0.509 & 0.527 & 0.556 & 0.103 & 0.480 & 0.681 & 0.684 & 0.676 & 0.672 & 0.645 & 0.046 & 0.639 \\
+ADWIN-Retrain & 0.462 & 0.407 & 0.509 & 0.527 & 0.556 & 0.103 & 0.480 & 0.938 & 0.897 & 0.948 & 0.937 & 0.900 & 0.099 & 0.874 \\
+PH-Retrain & 0.462 & 0.407 & 0.509 & 0.527 & 0.556 & 0.103 & 0.480 & 0.938 & 0.897 & 0.948 & 0.937 & 0.900 & 0.099 & 0.874 \\
+KSWIN-Score & 0.462 & 0.407 & 0.509 & 0.527 & 0.556 & 0.103 & 0.480 & 0.719 & 0.698 & 0.721 & 0.718 & 0.709 & 0.049 & 0.677 \\
+SLIDE & 0.459 & 0.406 & 0.506 & 0.529 & 0.556 & 0.101 & 0.484 & 0.948 & 0.914 & 0.955 & 0.948 & 0.907 & 0.106 & 0.897 \\
+\bottomrule
+\end{tabular}}
+\end{table*}

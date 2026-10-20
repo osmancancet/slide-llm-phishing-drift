@@ -1,0 +1,19 @@
+\begin{table}[t]
+\centering
+\caption{Left: displacement $\lVert\Phi(x')-\Phi(x)\rVert_2$ caused by each attack on the 600 stress e-mails (median, 10th--90th percentile; rel.: median ratio to $\lVert\Phi(x)\rVert_2$). Right: fraction of the stress e-mails that the warm-up head classifies correctly \emph{and} certifies by Proposition~\ref{prop:cert} at radius $\epsilon$, for a plain head and for a head trained with the adversarial term ($\lambda_a{=}0.5$, $\epsilon{=}1$).}
+\label{tab:cert}
+\scriptsize
+\setlength{\tabcolsep}{2.5pt}
+\begin{tabular}{@{}lrr@{\hspace{8pt}}lrr@{}}
+\toprule
+Attack & median (q10--q90) & rel. & radius $\epsilon$ & plain & adv. \\
+\midrule
+T1 paraphrase & 11.1 (5.4--21.9) & 0.40 & 0.25 & 0.438 & 0.435 \\
+T2, $\epsilon_{\mathrm{char}}{=}0.05$ & 5.7 (2.6--10.8) & 0.21 & 0.5 & 0.415 & 0.427 \\
+T2, $\epsilon_{\mathrm{char}}{=}0.10$ & 9.1 (4.8--16.0) & 0.33 & 1 & 0.358 & 0.370 \\
+T2, $\epsilon_{\mathrm{char}}{=}0.20$ & 14.6 (7.7--24.5) & 0.53 & 2 & 0.167 & 0.203 \\
+T3 padding & 30.8 (17.1--47.6) & 1.03 & $L_m$ & 6.04 & 5.45 \\
+T1$\circ$T2 (0.10) & 14.6 (9.4--23.9) & 0.50 & recall & 0.460 & 0.465 \\
+\bottomrule
+\end{tabular}
+\end{table}

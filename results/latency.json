@@ -1,0 +1,20 @@
+{
+ "encoder_ms_1t": 101.36477462947369,
+ "surprisal_lm_ms_1t": 240.5051300302148,
+ "encoder_ms_4t": 27.07996964454651,
+ "surprisal_lm_ms_4t": 71.63974177092314,
+ "head_ms": 0.005815982818603516,
+ "reference_build_s": 0.9127483367919922,
+ "drift_test_ms_per_batch": 77.25539207458496,
+ "drift_test_ms_per_email": 0.3090215682983398,
+ "retrain_plain_s": 0.28420400619506836,
+ "retrain_slide_s": 2.264411449432373,
+ "head_params": 198402,
+ "encoder_params": 82119938,
+ "lm_params": 81912576,
+ "reservoir_MB": 5.3097381591796875,
+ "reference_MB": 0.49591064453125,
+ "projection_MB": 0.376953125,
+ "tfidf_lr_ms": 0.49228454008698463,
+ "cpu": "\t: Intel(R) Xeon(R) Processor @ 2.10GHz"
+}

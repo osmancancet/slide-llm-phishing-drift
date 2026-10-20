@@ -1,0 +1,23 @@
+\begin{table}[t]
+\centering
+\caption{MCC per stream segment (mean over 10 realisations). Best value per column in bold.}
+\label{tab:segments}
+\scriptsize
+\setlength{\tabcolsep}{3.5pt}
+\begin{tabular}{@{}lccccc@{}}
+\toprule
+Method & A & B & C & D & E \\
+\midrule
+TFIDF-LR & \textbf{0.956} & 0.825 & 0.891 & 0.433 & 0.557 \\
+Online-TFIDF-SGD & 0.925 & 0.869 & 0.920 & \textbf{0.892} & \textbf{0.897} \\
+Static-FT & 0.948 & 0.824 & 0.711 & 0.221 & 0.442 \\
+Static-MLP & 0.951 & 0.831 & 0.720 & 0.237 & 0.439 \\
+Online-MLP & 0.946 & 0.889 & \textbf{0.924} & 0.768 & 0.895 \\
+Periodic-Retrain & 0.947 & 0.892 & 0.867 & 0.711 & 0.831 \\
+ADWIN-Retrain & 0.951 & 0.892 & 0.916 & 0.827 & 0.863 \\
+PH-Retrain & 0.951 & \textbf{0.899} & 0.911 & 0.827 & 0.856 \\
+KSWIN-Score & 0.946 & 0.888 & 0.910 & 0.765 & 0.832 \\
+SLIDE & 0.950 & 0.879 & 0.915 & 0.825 & 0.894 \\
+\bottomrule
+\end{tabular}
+\end{table}

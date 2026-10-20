@@ -1,0 +1,23 @@
+\begin{table}[t]
+\centering
+\caption{Sensitivity of SLIDE (5 realisations; default: $\epsilon=1$, $\alpha=0.01$, $n_\ell=500$, $K=64$; first row shows the default on the same 5 realisations).}
+\label{tab:sens}
+\scriptsize
+\begin{tabular}{@{}lcccr@{}}
+\toprule
+Setting & MCC & MCC (E) & FPR & Labels \\
+\midrule
+default & 0.896 & 0.890 & 0.042 & 2000 \\
+$\epsilon$=0.25 & 0.895 & 0.891 & 0.043 & 2000 \\
+$\epsilon$=0.5 & 0.895 & 0.892 & 0.043 & 2000 \\
+$\epsilon$=2.0 & 0.899 & 0.892 & 0.040 & 2000 \\
+$\epsilon$=4.0 & 0.895 & 0.876 & 0.041 & 2000 \\
+$\alpha$=0.001 & 0.895 & 0.888 & 0.042 & 2000 \\
+$\alpha$=0.05 & 0.899 & 0.898 & 0.042 & 2200 \\
+$n_\ell$=250 & 0.888 & 0.862 & 0.045 & 1000 \\
+$n_\ell$=1000 & 0.900 & 0.914 & 0.039 & 4000 \\
+$K$=16 & 0.897 & 0.893 & 0.042 & 2000 \\
+$K$=256 & 0.897 & 0.893 & 0.042 & 2100 \\
+\bottomrule
+\end{tabular}
+\end{table}

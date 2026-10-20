@@ -1,0 +1,25 @@
+\begin{table}[t]
+\centering
+\caption{Recall on malicious and FPR on legitimate messages by authorship inside segments D and E (mean over realisations; segment D contains no human-written malicious mail). ``llm'' = LLM-written, ``para'' = T1-paraphrased (malicious and the legitimate control).}
+\label{tab:slices}
+\scriptsize
+\setlength{\tabcolsep}{2.5pt}
+\begin{tabular}{@{}lccccc@{}}
+\toprule
+ & \multicolumn{2}{c}{Recall} & \multicolumn{3}{c}{FPR} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-6}
+Method & D:llm & E:para & D:llm & D:human & E:para \\
+\midrule
+TFIDF-LR & 0.602 & 0.670 & 0.517 & 0.080 & 0.494 \\
+Online-TFIDF-SGD & 0.887 & 0.914 & 0.044 & 0.008 & 0.044 \\
+Static-FT & 0.207 & 0.365 & 0.184 & 0.028 & 0.158 \\
+Static-MLP & 0.272 & 0.418 & 0.270 & 0.044 & 0.252 \\
+Online-MLP & 0.841 & 0.934 & 0.217 & 0.034 & 0.204 \\
+Periodic-Retrain & 0.662 & 0.810 & 0.068 & 0.013 & 0.055 \\
+ADWIN-Retrain & 0.875 & 0.901 & 0.135 & 0.028 & 0.168 \\
+PH-Retrain & 0.876 & 0.892 & 0.137 & 0.028 & 0.165 \\
+KSWIN-Score & 0.779 & 0.859 & 0.114 & 0.023 & 0.192 \\
+SLIDE & 0.880 & 0.937 & 0.157 & 0.028 & 0.185 \\
+\bottomrule
+\end{tabular}
+\end{table}
