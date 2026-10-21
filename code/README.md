@@ -1,6 +1,6 @@
 # SLIDE: reproduction code
 
-Code for "SLIDE: label-free sliced-Wasserstein drift detection and budgeted adaptation for LLM-generated phishing in e-mail streams" (O. C. Çetlenbik, submitted to *Computers & Security*). Every number, table and figure in the manuscript is written by these scripts; nothing is typed by hand.
+Code for "SLIDE: label-free sliced-Wasserstein drift detection and budgeted adaptation for LLM-generated phishing in e-mail streams" (O. C. Çetlenbik, submitted to *Knowledge-Based Systems*). Every number, table and figure in the manuscript is written by these scripts; nothing is typed by hand.
 
 ## Requirements
 CPU only (tested on a 4-core Intel Xeon 2.10 GHz, 15 GB RAM). Python 3 with the pinned versions in `requirements.txt` (CPU build of PyTorch). Hugging Face models are downloaded on first use: `distilroberta-base`, `distilgpt2`, `humarin/chatgpt_paraphraser_on_T5_base`, `sentence-transformers/all-MiniLM-L6-v2` (loaded through `transformers`).
