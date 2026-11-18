@@ -17,13 +17,17 @@ def w1_sorted(a, b):
 
 class SlicedDriftTest:
     def __init__(self, d, K=64, alpha=0.01, B=100, use_ks=True, use_sw=True, use_proj=True,
-                 use_score=True, seed=0):
+                 use_score=True, seed=0, spend="none"):
         rng = np.random.default_rng(seed)
         th = rng.standard_normal((d, K))
         self.theta = th / np.linalg.norm(th, axis=0, keepdims=True)
         self.K, self.alpha, self.B = K, alpha, B
         self.use_ks, self.use_sw, self.use_proj, self.use_score = use_ks, use_sw, use_proj, use_score
         self.rng = rng
+        # spend="harmonic": the j-th test after a reference is (re)built uses alpha_j = alpha / (j (j + 1)),
+        # so sum_j alpha_j <= alpha bounds the probability of ANY false alarm per reference epoch
+        # (union bound, valid for overlapping and dependent windows)
+        self.spend, self.j = spend, 0
 
     def _proj(self, X, s):
         cols = []
@@ -46,6 +50,7 @@ class SlicedDriftTest:
             m = min(n_w, n // 2)
             null.append(self._sw(self.P[perm[:m]], self.P[perm[m:2 * m]]))
         self.tau = float(np.quantile(null, 1 - self.alpha))
+        self.j = 0
 
     def test(self, X, s):
         Q = self._proj(X, s)
@@ -54,8 +59,15 @@ class SlicedDriftTest:
         # Holm step-down rejects at least one hypothesis iff min_j p_j <= alpha / m
         order = np.sort(pv)
         m = len(order)
-        ks_rej = bool(order[0] <= self.alpha / m)
+        self.j += 1
+        a_j = self.alpha / (self.j * (self.j + 1)) if self.spend == "harmonic" else self.alpha
+        ks_rej = bool(order[0] <= a_j / m)
         sw = self._sw(self.P, Q)
         sw_rej = sw > self.tau
         alarm = (ks_rej or not self.use_ks) and (sw_rej or not self.use_sw)
-        return alarm, {"sw": sw, "tau": self.tau, "minp": float(order[0]), "ks": ks_rej, "swr": bool(sw_rej)}
+        k = self.K if self.use_proj else 0
+        w1 = np.array([w1_sorted(self.P[:, j], Q[:, j]) for j in range(k)]) if k else np.zeros(1)
+        frac_sig = float(np.mean(pv[:k] <= a_j / m)) if k else 0.0
+        return alarm, {"sw": sw, "tau": self.tau, "minp": float(order[0]), "ks": ks_rej, "swr": bool(sw_rej),
+                       "a_j": a_j, "frac_sig": frac_sig, "w1_cv": float(w1.std() / (w1.mean() + 1e-12)),
+                       "w1_max_ratio": float(w1.max() / (w1.mean() + 1e-12)), "p_score": float(pv[-1])}

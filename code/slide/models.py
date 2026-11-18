@@ -39,7 +39,7 @@ def pgd_l2(model, x, y, eps, steps=3, w=None):
     return (x + delta).detach()
 
 
-def train_head(X, y, model=None, Xm=None, ym=None, lam_r=1.0, lam_a=0.0, eps=0.0, lam_p=0.0,
+def _train_head(X, y, model=None, Xm=None, ym=None, lam_r=1.0, lam_a=0.0, eps=0.0, lam_p=0.0,
                epochs=30, bs=256, lr=1e-3, seed=0, pgd_steps=3):
     """Train (or continue training) the head on the labelled window S=(X,y) and replay M=(Xm,ym)."""
     torch.manual_seed(seed)
@@ -133,3 +133,33 @@ class Reservoir:
 
 def clone(m):
     return copy.deepcopy(m)
+
+
+_HEAD_CACHE = None
+
+
+def train_head(X, y, model=None, **kw):
+    """memoised fresh-head training: a fresh head on identical data and settings is trained once and re-used
+    (identical result, since training is seeded); warm-started updates are never cached."""
+    if model is not None or kw.get("Xm") is not None:
+        return _train_head(X, y, model=model, **kw)
+    import hashlib, os
+    from .config import CACHE
+    h = hashlib.sha1(np.ascontiguousarray(X, dtype=np.float32).tobytes())
+    h.update(np.ascontiguousarray(y).astype(np.int64).tobytes())
+    h.update(repr(sorted(kw.items())).encode())
+    d = CACHE / "head_cache"
+    d.mkdir(exist_ok=True)
+    f = d / (h.hexdigest() + ".pt")
+    if f.exists():
+        try:
+            m = torch.load(f, weights_only=False)
+            m.eval()
+            return m
+        except Exception:
+            pass
+    m = _train_head(X, y, **kw)
+    tmp = f.with_suffix(".tmp%d" % os.getpid())
+    torch.save(m, tmp)
+    os.replace(tmp, f)
+    return m
