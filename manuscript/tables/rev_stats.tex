@@ -1,6 +1,6 @@
 \begin{table}[t]
 \centering
-\caption{Revised SLIDE against each method on the A--G stream: mean paired MCC difference, wins out of 10 realisations, two-sided Wilcoxon signed-rank test with Holm correction over 17 comparisons, rank-biserial effect size $r_{rb}$, and Friedman mean rank (Friedman $\chi^2_F=158.3$, $p=5.8e-25$; Nemenyi CD$_{0.05}=8.33$).}
+\caption{Revised SLIDE against each method on the A--G stream: mean paired MCC difference, wins out of 10 realisations, two-sided Wilcoxon signed-rank test with Holm correction over 18 comparisons, rank-biserial effect size $r_{rb}$, and Friedman mean rank (Friedman $\chi^2_F=166.7$, $p=4.1e-26$; Nemenyi CD$_{0.05}=8.85$).}
 \label{tab:rev-stats}
 \scriptsize
 \setlength{\tabcolsep}{3pt}
@@ -8,25 +8,26 @@
 \toprule
 Competitor & $\Delta$MCC & wins & $p_{\mathrm{Holm}}$ & $r_{rb}$ & rank \\
 \midrule
-TFIDF-LR & +0.187 & 10/10 & 0.0332 & +1.00 & 15.7 \\
-Online-TFIDF-SGD & -0.015 & 0/10 & 0.0332 & -1.00 & 1.0 \\
-Static-FT & +0.218 & 10/10 & 0.0332 & +1.00 & 16.9 \\
-Static-MLP & +0.225 & 10/10 & 0.0332 & +1.00 & 18.0 \\
-Online-MLP & +0.006 & 8/10 & 0.117 & +0.82 & 6.8 \\
+TFIDF-LR & +0.187 & 10/10 & 0.0352 & +1.00 & 16.7 \\
+Online-TFIDF-SGD & -0.015 & 0/10 & 0.0352 & -1.00 & 1.0 \\
+Static-FT & +0.218 & 10/10 & 0.0352 & +1.00 & 17.9 \\
+Static-MLP & +0.225 & 10/10 & 0.0352 & +1.00 & 19.0 \\
+Online-MLP & +0.006 & 8/10 & 0.117 & +0.82 & 7.5 \\
 ADWIN-Retrain & -0.002 & 3/10 & 0.48 & -0.53 & 3.9 \\
-KSWIN-Score & +0.022 & 9/10 & 0.0332 & +0.96 & 8.1 \\
-Budget-Uniform-MLP & +0.071 & 10/10 & 0.0332 & +1.00 & 12.2 \\
-Budget-Uncertainty-MLP & +0.095 & 10/10 & 0.0332 & +1.00 & 13.8 \\
-Budget-Uniform-TFIDF & +0.060 & 10/10 & 0.0332 & +1.00 & 10.9 \\
-Budget-Uncertainty-TFIDF & +0.055 & 10/10 & 0.0332 & +1.00 & 10.4 \\
-Budget-Random & +0.115 & 10/10 & 0.0332 & +1.00 & 13.5 \\
+KSWIN-Score & +0.022 & 9/10 & 0.0352 & +0.96 & 8.9 \\
+Budget-Uniform-MLP & +0.071 & 10/10 & 0.0352 & +1.00 & 13.2 \\
+Budget-Uncertainty-MLP & +0.095 & 10/10 & 0.0352 & +1.00 & 14.8 \\
+Budget-Uniform-TFIDF & +0.060 & 10/10 & 0.0352 & +1.00 & 11.9 \\
+Budget-Uncertainty-TFIDF & +0.055 & 10/10 & 0.0352 & +1.00 & 11.4 \\
+Budget-Random & +0.115 & 10/10 & 0.0352 & +1.00 & 14.5 \\
 Budget-Oracle & -0.002 & 3/10 & 0.322 & -0.67 & 3.8 \\
-Budget-Random-TFIDF & +0.133 & 10/10 & 0.0332 & +1.00 & 14.6 \\
-Budget-Oracle-TFIDF & +0.002 & 6/10 & 0.48 & +0.31 & 5.2 \\
+Budget-Random-TFIDF & +0.133 & 10/10 & 0.0352 & +1.00 & 15.6 \\
+Budget-Oracle-TFIDF & +0.002 & 6/10 & 0.48 & +0.31 & 5.6 \\
 SLIDE (earlier design) & +0.001 & 8/10 & 0.422 & +0.60 & 5.6 \\
-SLIDE-TFIDF & +0.004 & 6/10 & 0.48 & +0.49 & 5.9 \\
+SLIDE+replay & +0.005 & 9/10 & 0.041 & +0.93 & 7.5 \\
+SLIDE-TFIDF & +0.004 & 6/10 & 0.48 & +0.49 & 6.4 \\
 \midrule
-SLIDE (mean rank) &  &  &  &  & 4.7 \\
+SLIDE (mean rank) &  &  &  &  & 4.8 \\
 \bottomrule
 \end{tabular}
 \end{table}

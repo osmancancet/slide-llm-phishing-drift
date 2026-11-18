@@ -11,8 +11,8 @@ from slide.stats import holm, wilcoxon_rb, friedman_nemenyi, mean_ci
 R = RESULTS / "revision"
 TAB = RESULTS.parent / "manuscript" / "tables"
 FIG = RESULTS.parent / "manuscript" / "figures"
-S = pd.read_csv(R / "summary.csv")
-B = pd.read_csv(R / "batch.csv.gz")
+S = pd.read_csv(R / "summary.csv", keep_default_na=False, na_values=[""])   # the group name "null" must not parse as NaN
+B = pd.read_csv(R / "batch.csv.gz", keep_default_na=False, na_values=[""])
 ST = pd.read_csv(R / "stress.csv")
 EV = pd.DataFrame(json.load(open(R / "events.json")))
 EV["group"] = EV.key.str[0]
@@ -265,7 +265,8 @@ for nl in (50, 100, 250, 500, 1000):
     rows.append(cells)
 write("rev_budget.tex", table(
     "Label window $n_\\ell$ bought per alarm (5 realisations). SLIDE updates the transformer head; SLIDE-TFIDF uses the "
-    "same alarms to update an online TF-IDF learner.", "tab:rev-budget",
+    "same alarms to update an online TF-IDF learner. For $n_\\ell<250$ the window is a random subset of the alarm batch; "
+    "MCC (G): MCC on segment G.", "tab:rev-budget",
     ["$n_\\ell$", "SLIDE MCC", "MCC (G)", "Labels", "SLIDE-TFIDF MCC", "MCC (G)", "Labels"], rows))
 
 DL = ["1", "2", "4", "8", "16", "rand1-8", "rand1-16"]
@@ -313,7 +314,7 @@ for n in list(dict.fromkeys(S[S.group == "null"].name)):
     tests = np.array([len(r["info"]) for _, r in e.iterrows()])
     N[f"null|{n}|alarms"] = float(A.mean()); N[f"null|{n}|p_any"] = float((A > 0).mean())
     N[f"null|{n}|tests"] = float(tests.mean()); N[f"null|{n}|labels"] = float(e.stream_labels.mean())
-    rows.append([tex(n), f"{tests.mean():.0f}" if tests.any() else "--", f"{A.mean():.2f}", f"{(A > 0).mean():.2f}",
+    rows.append([tex({"SW gate only": "alpha-spending, SW only"}.get(n, n)), f"{tests.mean():.0f}" if tests.any() else "--", f"{A.mean():.2f}", f"{(A > 0).mean():.2f}",
                  f"{e.stream_labels.mean():.0f}"])
 write("rev_null.tex", table(
     "Stationary null stream (20{,}000 messages drawn from A$\\cup$B$\\cup$C without segments, 20 realisations). Tests: drift "
@@ -330,12 +331,15 @@ for n in list(dict.fromkeys(S[S.group == "real"].name)):
     N[f"real|{n}|labels"] = float(e.stream_labels.mean())
     N[f"real|{n}|audit_alarms"] = float(e.audit_alarms.mean())
     N[f"real|{n}|updates"] = float(e.events.apply(len).mean())
-    rows.append([n, f"{x0.mean():.3f}", ci(x1), f"{r1.mean():.3f}", f"{e.stream_labels.mean():.0f}",
+    first = np.array([min(x) if len(x) else np.nan for x in e.events], float)
+    N[f"real|{n}|p_upd"] = float(np.isfinite(first).mean())
+    N[f"real|{n}|lag"] = float(np.nanmean(first) - 16) if np.isfinite(first).any() else None   # R1 starts at batch 16
+    rows.append([n.replace("n_a=", "$n_a$="), f"{x0.mean():.3f}", ci(x1), f"{r1.mean():.3f}", f"{e.stream_labels.mean():.0f}",
                  f"{e.events.apply(len).mean():.1f}"])
 write("rev_real.tex", table(
     "Real-drift probe (10 realisations): in R1 a fixed region of legitimate mail (about one fifth of it, one $k$-means "
-    "cell of $\\phi$) becomes malicious while $P(x)$ is unchanged. SLIDE+Audit adds five random audit labels per batch "
-    "and an ADWIN test on their error stream.", "tab:rev-real",
+    "cell of $\\phi$) becomes malicious while $P(x)$ is unchanged. SLIDE+Audit adds $n_a$ random audit labels per batch "
+    "($n_a=5$ unless stated) and an ADWIN test on their error stream; an audit alarm buys the same 500-label window.", "tab:rev-real",
     ["Method", "MCC R0", "MCC R1", "Recall R1", "Labels", "Upd."], rows))
 
 # ------------------------------------------------------------------ stress (prefix attacks, chunked scoring)
@@ -357,7 +361,8 @@ for g, m in SHOW:
     if m == "SLIDE (KBS version)":
         rows.append("MID")
 write("rev_stress.tex", table(
-    "Detection rate on 600 held-out phishing messages at the end of the stream (mean over 10 realisations). T3-$n$: "
+    "Detection rate on the 600 held-out malicious messages of Table~\\ref{tab:rev-retention} at the end of the stream (mean over 10 "
+    "realisations). T1: paraphrase; T2: a homoglyph, transposition or zero-width character in 10\\% of the words of four or more letters; T3-$n$: "
     "$n$-character benign prefix; T4: 400-character benign suffix; T5: 400-character prefix and suffix. Chunked rows "
     "score up to five 126-token windows and take the maximum.", "tab:rev-stress", ["Method"] + VN, rows, star=True))
 
@@ -405,6 +410,15 @@ _a = json.load(open(RESULTS / "leakage_audit.json"))
 N["auth_probe"] = float(_a["authorship_probe_f1macro"])
 _l = json.load(open(RESULTS / "latency.json"))
 N["lat_enc_ms"] = float(_l["encoder_ms_4t"]); N["lat_lm_ms"] = float(_l["surprisal_lm_ms_4t"])
+N["lat_test_ms_batch"] = float(_l["drift_test_ms_per_batch"]); N["lat_head_ms"] = float(_l["head_ms"])
+N["lat_ref_s"] = float(_l["reference_build_s"]); N["lat_tfidf_ms"] = float(_l["tfidf_lr_ms"])
+for n in list(dict.fromkeys(S[S.group == "chunk"].name)):          # chunked scoring on the clean A-G stream
+    for met in ("mcc", "fpr", "recall"):
+        N[f"chunk|{n}|{met}"] = float(sm("chunk", n, met).mean())
+    N[f"chunk|{n}|wall"] = float(ev("chunk", n).wall.mean())
+for m in ("SLIDE", "Static-MLP", "ADWIN-Retrain", "Online-TFIDF-SGD", "SLIDE-TFIDF", "SLIDE+replay"):
+    e = ev("main", m)
+    N[f"main|{m}|wall"] = float(e.wall.mean()); N[f"main|{m}|t_detect"] = float(e.t_detect.mean())
 
 # ------------------------------------------------------------------ figure: batch MCC
 fig, ax = plt.subplots(figsize=(7.2, 2.7))

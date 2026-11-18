@@ -12,6 +12,7 @@ Additions over stream.py
 import copy
 import time
 import numpy as np
+from .config import BATCH
 from sklearn.linear_model import SGDClassifier
 from sklearn.feature_extraction.text import HashingVectorizer
 from river import drift as rdrift
@@ -116,6 +117,8 @@ class LabelOnAlarmExt(S.LabelOnAlarm):
         self.ctx = ctx
         super().__init__(ctx, robust=robust, cfg=dict(DEF, **(cfg or {})))
         self.cfg = dict(DEF, **(cfg or {}))
+        lw = self.cfg["label_win"]
+        self.label_sub = lw if lw < BATCH else None
 
     def purchase(self, t, nb):
         D = self.ctx["delays"][t]
@@ -459,8 +462,12 @@ def run_stream(method, order, seg, Xall, y, nbatch, delays):
             method.step(t, X, nbatch)
         for td in method.due_labels(t, 0):
             s2 = slice(td * nbatch, min((td + 1) * nbatch, len(order)))
-            r = method.receive(td, order[s2], Xall[order[s2]], y[order[s2]])
-            used += (s2.stop - s2.start) if r is None else r
+            ix = order[s2]
+            sub = getattr(method, "label_sub", None)      # label windows smaller than a batch: random subset of it
+            if sub and len(ix) > sub:
+                ix = np.sort(np.random.default_rng(1000 * td + 7).choice(ix, sub, replace=False))
+            r = method.receive(td, ix, Xall[ix], y[ix])
+            used += len(ix) if r is None else r
         if hasattr(method, "maybe_retrain"):
             method.maybe_retrain(t)
         if sl.stop < len(order) and seg[sl.stop - 1] == "D" and seg[sl.stop] == "E":

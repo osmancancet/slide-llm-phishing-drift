@@ -14,8 +14,16 @@ TOK = re.compile(r"\{\{([^{}:]+?)(?::([^{}]+))?\}\}")
 missing = []
 
 
+LAB = {}
+
+
 def rep(m):
     k, f = m.group(1), m.group(2) or ".3f"
+    if k == "ref":                              # {{ref:label}}: section/table number from the generated aux
+        if f not in LAB:
+            missing.append("ref:" + f)
+            return "??"
+        return LAB[f]
     if k.startswith("="):                       # {{=[key1]-[key2]:fmt}}: arithmetic on numbers.json values
         keys = re.findall(r"\[([^\[\]]+)\]", k)
         bad = [x for x in keys if N.get(x) is None]
@@ -42,10 +50,14 @@ def fmt(v, f):
 for p in sorted((ROOT / "manuscript" / "tpl").glob("*.tex")):
     out = TOK.sub(rep, p.read_text())
     (ROOT / "manuscript" / "sections" / p.name).write_text(out)
+# cross-reference numbers for the submission texts
+import subprocess
+subprocess.run([sys.executable, str(ROOT / "manuscript" / "gen_aux.py")], check=True, capture_output=True)
+LAB.update(re.findall(r"\\newlabel\{([^}]*)\}\{\{([^}]*)\}", (ROOT / "manuscript" / "build" / "main.aux").read_text()))
 # submission texts (response letter, cover letter, highlights): submission/tpl/*.md -> submission/*.md
 (ROOT / "submission").mkdir(exist_ok=True)
 for p in sorted((ROOT / "submission" / "tpl").glob("*.md")):
-    (ROOT / "submission" / p.name).write_text(TOK.sub(rep, p.read_text()).replace("$-$", "-"))
+    (ROOT / "submission" / p.name).write_text(TOK.sub(rep, p.read_text()).replace("$-$", "-").replace("{,}", ",").replace("\\%", "%"))
 if missing:
     print("MISSING:", sorted(set(missing)))
     sys.exit(1)

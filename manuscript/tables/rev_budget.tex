@@ -1,6 +1,6 @@
 \begin{table}[t]
 \centering
-\caption{Label window $n_\ell$ bought per alarm (5 realisations). SLIDE updates the transformer head; SLIDE-TFIDF uses the same alarms to update an online TF-IDF learner.}
+\caption{Label window $n_\ell$ bought per alarm (5 realisations). SLIDE updates the transformer head; SLIDE-TFIDF uses the same alarms to update an online TF-IDF learner. For $n_\ell<250$ the window is a random subset of the alarm batch; MCC (G): MCC on segment G.}
 \label{tab:rev-budget}
 \scriptsize
 \setlength{\tabcolsep}{3pt}
@@ -8,11 +8,11 @@
 \toprule
 $n_\ell$ & SLIDE MCC & MCC (G) & Labels & SLIDE-TFIDF MCC & MCC (G) & Labels \\
 \midrule
-50 & -- & -- & -- & -- & -- & -- \\
-100 & -- & -- & -- & -- & -- & -- \\
-250 & -- & -- & -- & -- & -- & -- \\
-500 & -- & -- & -- & -- & -- & -- \\
-1000 & -- & -- & -- & -- & -- & -- \\
+50 & 0.820\,$\pm$\,0.017 & 0.755 & 300 & 0.825\,$\pm$\,0.012 & 0.777 & 300 \\
+100 & 0.853\,$\pm$\,0.007 & 0.806 & 600 & 0.851\,$\pm$\,0.009 & 0.819 & 600 \\
+250 & 0.871\,$\pm$\,0.004 & 0.859 & 1500 & 0.881\,$\pm$\,0.008 & 0.858 & 1500 \\
+500 & 0.888\,$\pm$\,0.002 & 0.864 & 3000 & 0.885\,$\pm$\,0.008 & 0.865 & 3000 \\
+1000 & 0.890\,$\pm$\,0.003 & 0.846 & 6000 & 0.885\,$\pm$\,0.006 & 0.857 & 6000 \\
 \bottomrule
 \end{tabular}
 \end{table}

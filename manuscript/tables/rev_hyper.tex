@@ -20,6 +20,9 @@ Equal-budget samplers & labels per batch & 21 \\
 Stream & batch $b$ / default delay $D$ & 250 / 2 \\
 Attack T1 & accepted similarity / tries / prefix & $\ge 0.70$ / 3 / 600 chars \\
 Chunked scoring & window / max.\ windows & 126 content tokens / 5 \\
+Baseline detectors & ADWIN $\delta$ (ADWIN-Retrain, audit) & 0.002 \\
+ & KSWIN $\alpha$ / window / statistic size & 0.005 / 500 / 150 \\
+Label audit & labels per batch $n_a$ & 5, 10, 25 \\
 \bottomrule
 \end{tabular}
 \end{table}

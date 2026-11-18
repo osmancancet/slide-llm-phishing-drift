@@ -1,6 +1,6 @@
 \begin{table}[t]
 \centering
-\caption{Real-drift probe (10 realisations): in R1 a fixed region of legitimate mail (about one fifth of it, one $k$-means cell of $\phi$) becomes malicious while $P(x)$ is unchanged. SLIDE+Audit adds five random audit labels per batch and an ADWIN test on their error stream.}
+\caption{Real-drift probe (10 realisations): in R1 a fixed region of legitimate mail (about one fifth of it, one $k$-means cell of $\phi$) becomes malicious while $P(x)$ is unchanged. SLIDE+Audit adds $n_a$ random audit labels per batch ($n_a=5$ unless stated) and an ADWIN test on their error stream; an audit alarm buys the same 500-label window.}
 \label{tab:rev-real}
 \scriptsize
 \setlength{\tabcolsep}{3pt}
@@ -8,6 +8,14 @@
 \toprule
 Method & MCC R0 & MCC R1 & Recall R1 & Labels & Upd. \\
 \midrule
+SLIDE & 0.941 & 0.710\,$\pm$\,0.007 & 0.775 & 0 & 0.0 \\
+SLIDE+Audit & 0.941 & 0.710\,$\pm$\,0.007 & 0.775 & 150 & 0.0 \\
+ADWIN-Retrain & 0.941 & 0.702\,$\pm$\,0.008 & 0.776 & 7500 & 1.0 \\
+Online-TFIDF-SGD & 0.899 & 0.710\,$\pm$\,0.012 & 0.868 & 7500 & 0.0 \\
+Static-MLP & 0.941 & 0.710\,$\pm$\,0.007 & 0.775 & 0 & 0.0 \\
+Budget-Uniform-MLP & 0.933 & 0.710\,$\pm$\,0.013 & 0.853 & 630 & 0.0 \\
+SLIDE+Audit $n_a$=10 & 0.941 & 0.710\,$\pm$\,0.007 & 0.775 & 300 & 0.0 \\
+SLIDE+Audit $n_a$=25 & 0.941 & 0.736\,$\pm$\,0.015 & 0.805 & 1035 & 0.6 \\
 \bottomrule
 \end{tabular}
 \end{table}

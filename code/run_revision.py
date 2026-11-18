@@ -108,6 +108,8 @@ def registry():
     for m, c in (("SLIDE", REV), ("SLIDE+Audit", REV), ("ADWIN-Retrain", {}), ("Online-TFIDF-SGD", {}),
                  ("Static-MLP", {}), ("Budget-Uniform-MLP", {})):
         J[("real", m)] = (m, c, "real", seeds)
+    for na in (10, 25):     # audit-size sensitivity (5 labels per batch is the default above)
+        J[("real", f"SLIDE+Audit n_a={na}")] = ("SLIDE+Audit", dict(REV, n_a=na), "real", seeds)
     for m, c in (("SLIDE chunked", dict(REV, chunk=True)), ("Static-MLP chunked", dict(chunk=True)),
                  ("ADWIN-Retrain chunked", dict(chunk=True))):
         J[("chunk", m)] = (m.replace(" chunked", ""), c, "abrupt", seeds)
@@ -142,7 +144,8 @@ def make(name, ctx, cfg):
     if name == "SLIDE-TFIDF":
         return S.SLIDETfidf(ctx, cfg=c)
     if name == "SLIDE+Audit":
-        return S.SLIDEAudit(ctx, cfg=c)
+        na = c.pop("n_a", 5)
+        return S.SLIDEAudit(ctx, cfg=c, n_a=na)
     return S.SLIDE(ctx, cfg=c, name=name)
 
 

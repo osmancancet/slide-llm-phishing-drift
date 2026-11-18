@@ -2,7 +2,7 @@
 
 Cross-references are resolved from build/main.aux (run `tectonic --keep-intermediates --outdir build main.tex` first);
 the TikZ figure and Algorithm 1 are replaced by PNG renderings in figures/.
-Usage: python3 build_docx_md.py path/to/ieee.csl
+Usage: python3 gen_aux.py && python3 build_docx_md.py path/to/elsevier.csl
 """
 import re
 import subprocess
@@ -26,8 +26,51 @@ body = body.replace("\\end{frontmatter}", "")
 body = re.sub(r"\\begin\{keyword\}(.*?)\\end\{keyword\}", lambda m: "\\noindent\\textbf{Keywords:} " + re.sub(r"\s*\\sep\s*", "; ", m.group(1)).strip() + "\n", body, flags=re.S)
 # TikZ figure and algorithm -> images
 body = re.sub(r"\\begin\{tikzpicture\}.*?\\end\{tikzpicture\}", r"\\includegraphics[width=\\linewidth]{figures/arch.png}", body, flags=re.S)
-body = re.sub(r"\\begin\{algorithm\}\[t\].*?\\end\{algorithm\}",
-              r"\\begin{figure}[t]\n\\includegraphics[width=\\linewidth]{figures/algorithm1.png}\n\\caption{SLIDE prequential detection with label-on-alarm adaptation.}\n\\end{figure}", body, flags=re.S)
+
+
+def algorithm_text(m):
+    """algorithmic block -> numbered lines (editable text in Word, no image)."""
+    src = m.group(0)
+    cap = re.search(r"\\caption\{(.*?)\}\\label", src).group(1)
+    lines, depth, n = [], 0, 0
+    for raw in src.splitlines():
+        l = raw.strip()
+        if not l or l.startswith(("\\begin", "\\end{algorithm", "\\caption", "\\small")):
+            continue
+        if l.startswith(("\\EndIf", "\\EndFor", "\\Else")):
+            depth -= 1
+            if l.startswith("\\Else"):
+                n += 1; lines.append((n, depth, "\\textbf{else}")); depth += 1
+            continue
+        if l.startswith("\\Require"):
+            lines.append((None, 0, "\\textbf{Require:} " + l[len("\\Require"):].strip())); continue
+        l = re.sub(r"\\Comment\{([^}]*)\}", r" (\1)", l)
+        inline_end = l.endswith("\\EndIf")
+        l = l.replace("\\EndIf", "").strip()
+        if l.startswith("\\State"):
+            txt = l[len("\\State"):].strip()
+        elif l.startswith("\\If"):
+            i, dep = len("\\If{"), 1
+            while dep:
+                dep += {"{": 1, "}": -1}.get(l[i], 0); i += 1
+            cond, rest = l[len("\\If{"):i - 1], l[i:].strip()
+            txt = "\\textbf{if} " + cond + " \\textbf{then}" + ((" " + rest) if rest else "")
+        elif l.startswith("\\For"):
+            txt = "\\textbf{for} " + re.match(r"\\For\{(.*)\}", l).group(1) + " \\textbf{do}"
+        else:
+            txt = l
+        n += 1
+        lines.append((n, depth, txt.replace("\\textsc{Calibrate}", "\\textrm{CALIBRATE}")))
+        if (l.startswith("\\If") and not inline_end) or l.startswith("\\For"):
+            depth += 1
+    out = [f"\n\n\\noindent\\textbf{{Algorithm 1.}} {cap}\n"]
+    for num, d, txt in lines:
+        pre = "" if num is None else f"{num}: "
+        out.append("\n\\noindent{}" + "~" * (4 * d) + pre + txt + "\n")
+    return "\n".join(out) + "\n"
+
+
+body = re.sub(r"\\begin\{algorithm\}\[t\].*?\\end\{algorithm\}", algorithm_text, body, flags=re.S)
 body = re.sub(r"figures/(\w+)\.pdf", r"figures/\1.png", body)
 # table layout helpers pandoc does not parse
 body = body.replace("\\resizebox{\\textwidth}{!}{\\begin{tabular}", "\\begin{tabular}").replace("\\end{tabular}}", "\\end{tabular}")
@@ -86,18 +129,103 @@ body = re.sub(r"\\begin\{abstract\}(.*?)\\end\{abstract\}", r"\\section*{Abstrac
 k = iter(range(1, 100))
 body = re.sub(r"\\textbf\{Proposition\. ", lambda m: f"\\textbf{{Proposition {next(k)} ", body)
 
-pre = r"""\documentclass{article}
-\usepackage{amsmath,amssymb,graphicx,booktabs}
-\title{SLIDE: label-free sliced-Wasserstein drift detection and budgeted adaptation for LLM-generated phishing in e-mail streams}
-\author{Osman Can \c{C}etlenbik\\Big Data Analytics Program, Department of Statistics, Manisa Technical Sciences Vocational School, Manisa Celal Bayar University, Manisa 45140, T\"urkiye\\Corresponding author. E-mail: osman.cetlenbik@cbu.edu.tr}
-\begin{document}
-\maketitle
-"""
-flat = HERE / "build" / "flat_pandoc.tex"
-flat.write_text(pre + body + "\n\\section*{References}\n\\end{document}\n")
-common = ["pandoc", str(flat), "-f", "latex", "--citeproc", "--bibliography", str(HERE / "refs.bib"), "--csl", CSL,
-          "--number-sections", "--resource-path", str(HERE)]
-subprocess.run(common + ["-t", "docx", "--reference-doc", str(HERE / "reference.docx"), "-o", str(HERE / "main.docx")], check=True)
+
+TITLE = re.search(r"\\title\{(.*?)\}\n", (HERE / "main.tex").read_text()).group(1)
+AFFIL = ("Department of Statistics, Big Data Analyst Program, Manisa Vocational School of Technical Sciences, "
+         "Manisa Celal Bayar University, Manisa 45140, T\\\"urkiye")
+OUT = HERE / "build" / "word"
+OUT.mkdir(parents=True, exist_ok=True)
+REF = str(HERE / "reference.docx")
+
+
+def pandoc_docx(tex, out, number=True):
+    flat = HERE / "build" / (out.stem + ".tex")
+    flat.write_text(tex)
+    cmd = ["pandoc", str(flat), "-f", "latex", "--citeproc", "--bibliography", str(HERE / "refs.bib"), "--csl", CSL,
+           "--resource-path", str(HERE), "-t", "docx", "--reference-doc", REF, "-o", str(out)]
+    if number:
+        cmd.insert(2, "--number-sections")
+    subprocess.run(cmd, check=True)
+
+
+named = (r"""\documentclass{article}\usepackage{amsmath,amssymb,graphicx,booktabs}\title{""" + TITLE + r"""}
+\author{Osman Can \c{C}etlenbik\\""" + AFFIL + r"""\\Corresponding author. E-mail: osman.cetlenbik@cbu.edu.tr\\ORCID: 0009-0000-6561-1943}
+\date{}\begin{document}\maketitle
+""" + body + "\n\\section*{References}\n\\end{document}\n")
+anon_body = re.sub(r"\\url\{https://github\.com/[^}]*\}", "[repository link removed for double-anonymised review]", body)
+anon_body = anon_body.replace("osmancancet", "[anonymised]")
+anon = (r"""\documentclass{article}\usepackage{amsmath,amssymb,graphicx,booktabs}\title{""" + TITLE + r"""}\date{}
+\begin{document}\maketitle
+""" + anon_body + "\n\\section*{References}\n\\end{document}\n")
+pandoc_docx(named, OUT / "SLIDE_manuscript.docx")
+pandoc_docx(anon, OUT / "SLIDE_manuscript_anonymized.docx")
+title_page = (r"""\documentclass{article}\begin{document}
+\section*{Title page}
+\textbf{Title:} """ + TITLE + r"""
+
+\textbf{Author:} Osman Can \c{C}etlenbik
+
+\textbf{Affiliation:} """ + AFFIL + r"""
+
+\textbf{Corresponding author:} Osman Can \c{C}etlenbik, osman.cetlenbik@cbu.edu.tr, ORCID 0009-0000-6561-1943
+
+\textbf{Data and code availability:} All data are public. Code, per-run results and the manuscript source: \url{https://github.com/osmancancet/slide-llm-phishing-drift} (MIT licence).
+\end{document}
+""")
+pandoc_docx(title_page, OUT / "SLIDE_title_page.docx", number=False)
+SUB = HERE.parent / "submission"
+for md, name in (("highlights.md", "SLIDE_highlights.docx"), ("cover_letter.md", "SLIDE_cover_letter.docx"),
+                 ("response_to_reviewers.md", "SLIDE_response_to_KBS_reviewers.docx")):
+    src = (SUB / md).read_text()
+    if md == "cover_letter.md":          # keep the address block on separate lines
+        a, b = src.split("\n\n", 1)
+        src = "  \n".join(a.splitlines()) + "\n\n" + b
+    subprocess.run(["pandoc", "-f", "markdown", "-t", "docx", "--reference-doc", REF, "-o", str(OUT / name)],
+                   input=src, text=True, check=True)
+
+
+def style_docx(path, double=True, line_numbers=True):
+    """Times New Roman 12 pt, double spacing and continuous line numbers for the manuscript files."""
+    from docx import Document
+    from docx.shared import Pt
+    from docx.oxml.ns import qn
+    from docx.oxml import OxmlElement
+    d = Document(path)
+    for st in d.styles:
+        try:
+            f = st.font
+        except AttributeError:
+            continue
+        f.name = "Times New Roman"
+        rpr = st.element.get_or_add_rPr()
+        rf = rpr.find(qn("w:rFonts"))
+        if rf is None:
+            rf = OxmlElement("w:rFonts"); rpr.append(rf)
+        for a in ("w:ascii", "w:hAnsi", "w:cs", "w:eastAsia"):
+            rf.set(qn(a), "Times New Roman")
+        for a in ("w:asciiTheme", "w:hAnsiTheme", "w:cstheme", "w:eastAsiaTheme"):
+            rf.attrib.pop(qn(a), None)
+    d.styles["Normal"].font.size = Pt(12)
+    for nm in ("Body Text", "First Paragraph", "Normal", "Compact"):
+        if nm in [x.name for x in d.styles] and double:
+            pf = d.styles[nm].paragraph_format
+            pf.line_spacing = 2.0
+    for t in d.tables:
+        tbl = t._tbl
+        borders = OxmlElement("w:tblBorders")
+        for edge in ("top", "bottom", "insideH"):
+            e = OxmlElement(f"w:{edge}"); e.set(qn("w:val"), "single"); e.set(qn("w:sz"), "4"); e.set(qn("w:color"), "000000")
+            borders.append(e)
+        tbl.tblPr.append(borders)
+    if line_numbers:
+        for sec in d.sections:
+            if sec._sectPr.find(qn("w:lnNumType")) is not None:
+                continue
+            ln = OxmlElement("w:lnNumType"); ln.set(qn("w:countBy"), "1"); ln.set(qn("w:restart"), "continuous")
+            sec._sectPr.append(ln)
+    d.core_properties.author = "Osman Can Çetlenbik" if "anonym" not in path.name else ""
+    d.core_properties.last_modified_by = ""
+    d.save(path)
 
 
 def tidy_docx(path):
@@ -153,11 +281,10 @@ def tidy_docx(path):
             out.writestr(n, b)
 
 
-tidy_docx(HERE / "main.docx")
-md = subprocess.run(common + ["-t", "gfm-smart", "--wrap=none"], check=True, capture_output=True, text=True).stdout
-head = ("# SLIDE: label-free sliced-Wasserstein drift detection and budgeted adaptation for LLM-generated phishing in e-mail streams\n\n"
-        "**Osman Can Çetlenbik**  \nBig Data Analytics Program, Department of Statistics, Manisa Technical Sciences Vocational School, Manisa Celal Bayar University, "
-        "Manisa 45140, Türkiye  \nCorresponding author. E-mail: osman.cetlenbik@cbu.edu.tr\n\n")
-md = re.sub(r'<span class="nocase">(.*?)</span>', r"\1", md)
-(HERE / "main.md").write_text(head + md)
-print("wrote", HERE / "main.docx", HERE / "main.md")
+
+for f in ("SLIDE_manuscript.docx", "SLIDE_manuscript_anonymized.docx"):
+    tidy_docx(OUT / f)
+    style_docx(OUT / f, double=True, line_numbers=True)
+for f in ("SLIDE_title_page.docx", "SLIDE_highlights.docx", "SLIDE_cover_letter.docx", "SLIDE_response_to_KBS_reviewers.docx"):
+    style_docx(OUT / f, double=False, line_numbers=False)
+print("wrote", sorted(x.name for x in OUT.glob("*.docx")))
