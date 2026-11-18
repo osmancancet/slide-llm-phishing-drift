@@ -1,0 +1,31 @@
+\begin{table*}[t]
+\centering
+\caption{Recall on malicious and false-positive rate on legitimate mail by authorship (mean over 10 realisations). LLM: LLM-written; human: human-written; para.: T1-paraphrased; transl.: machine-translated Spanish mail. D contains no human-written malicious mail, so its human recall is undefined.}
+\label{tab:rev-slices}
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\resizebox{\textwidth}{!}{\begin{tabular}{@{}lcccccccccccc@{}}
+\toprule
+Method & Rec. LLM, D & Rec. human, D & Rec. para., E & Rec. LLM, F & Rec. human, F & Rec. transl., G & FPR LLM, D & FPR human, D & FPR para., E & FPR LLM, F & FPR human, F & FPR transl., G \\
+\midrule
+TFIDF-LR & 0.602 & -- & 0.687 & 0.935 & -- & 1.000 & 0.517 & 0.080 & 0.502 & 0.228 & 0.097 & 0.604 \\
+Online-TFIDF-SGD & 0.887 & -- & 0.918 & 0.935 & -- & 0.976 & 0.044 & 0.008 & 0.044 & 0.068 & 0.008 & 0.061 \\
+Static-FT & 0.207 & -- & 0.356 & 0.391 & -- & 0.888 & 0.184 & 0.028 & 0.165 & 0.060 & 0.029 & 0.180 \\
+Static-MLP & 0.268 & -- & 0.416 & 0.355 & -- & 0.962 & 0.265 & 0.043 & 0.228 & 0.068 & 0.052 & 0.246 \\
+Online-MLP & 0.844 & -- & 0.937 & 0.943 & -- & 0.954 & 0.223 & 0.034 & 0.198 & 0.144 & 0.015 & 0.082 \\
+ADWIN-Retrain & 0.874 & -- & 0.899 & 0.914 & -- & 0.957 & 0.135 & 0.028 & 0.149 & 0.123 & 0.017 & 0.064 \\
+KSWIN-Score & 0.776 & -- & 0.871 & 0.910 & -- & 0.880 & 0.121 & 0.025 & 0.199 & 0.140 & 0.017 & 0.053 \\
+Budget-Uniform-MLP & 0.771 & -- & 0.869 & 0.878 & -- & 0.883 & 0.407 & 0.069 & 0.353 & 0.183 & 0.027 & 0.122 \\
+Budget-Uncertainty-MLP & 0.384 & -- & 0.827 & 0.878 & -- & 0.909 & 0.109 & 0.010 & 0.186 & 0.122 & 0.014 & 0.117 \\
+Budget-Uniform-TFIDF & 0.822 & -- & 0.845 & 0.869 & -- & 0.916 & 0.186 & 0.038 & 0.141 & 0.098 & 0.024 & 0.125 \\
+Budget-Uncertainty-TFIDF & 0.724 & -- & 0.883 & 0.918 & -- & 0.870 & 0.080 & 0.014 & 0.088 & 0.082 & 0.013 & 0.084 \\
+Budget-Random & 0.591 & -- & 0.823 & 0.877 & -- & 0.930 & 0.267 & 0.030 & 0.210 & 0.193 & 0.019 & 0.259 \\
+Budget-Oracle & 0.858 & -- & 0.922 & 0.917 & -- & 0.954 & 0.163 & 0.020 & 0.212 & 0.120 & 0.012 & 0.072 \\
+Budget-Random-TFIDF & 0.635 & -- & 0.763 & 0.856 & -- & 0.988 & 0.265 & 0.040 & 0.064 & 0.081 & 0.019 & 0.383 \\
+Budget-Oracle-TFIDF & 0.857 & -- & 0.877 & 0.932 & -- & 0.972 & 0.066 & 0.016 & 0.035 & 0.064 & 0.010 & 0.089 \\
+SLIDE (earlier design) & 0.880 & -- & 0.939 & 0.922 & -- & 0.951 & 0.157 & 0.028 & 0.175 & 0.119 & 0.022 & 0.083 \\
+SLIDE & 0.874 & -- & 0.927 & 0.920 & -- & 0.949 & 0.166 & 0.027 & 0.205 & 0.124 & 0.013 & 0.066 \\
+SLIDE-TFIDF & 0.883 & -- & 0.890 & 0.931 & -- & 0.975 & 0.089 & 0.034 & 0.050 & 0.064 & 0.011 & 0.082 \\
+\bottomrule
+\end{tabular}}
+\end{table*}

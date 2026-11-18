@@ -1,0 +1,54 @@
+\section{Results}\label{sec:results}
+
+\subsection{Accuracy and label cost}\label{sec:main}
+Table~\ref{tab:rev-main} gives the stream-level results. The static detectors end between MCC {{main|Static-MLP|mcc:.3f}} and {{main|TFIDF-LR|mcc:.3f}}, and the label-on-alarm and fully supervised methods lie between {{main|KSWIN-Score|mcc:.3f}} and {{main|Online-TFIDF-SGD|mcc:.3f}}. SLIDE reaches {{main|SLIDE|mcc:.3f}} with {{main|SLIDE|labels:,.0f}} labels, which is {{=[main|SLIDE|labels]/[main|Online-TFIDF-SGD|labels]:.1%}} of the {{main|Online-TFIDF-SGD|labels:,.0f}} labels that the fully supervised methods consume. The online TF-IDF learner is the most accurate method ({{main|Online-TFIDF-SGD|mcc:.3f}}) and ranks first in every realisation; SLIDE is {{=-[vs|Online-TFIDF-SGD|d]:.3f}} MCC below it and loses all ten paired realisations ($p_{\mathrm{Holm}}={{vs|Online-TFIDF-SGD|ph:.4f}}$, Table~\ref{tab:rev-stats}). ADWIN-triggered retraining of the same head with all labels reaches {{main|ADWIN-Retrain|mcc:.3f}}, which SLIDE does not separate from ({{vs|ADWIN-Retrain|wins:.0f}} wins out of ten, $p_{\mathrm{Holm}}={{vs|ADWIN-Retrain|ph:.2f}}$).
+
+\input{tables/rev_main.tex}
+
+The earlier design with the four-term objective and surprisal features reaches {{main|SLIDE (KBS version)|mcc:.3f}}, statistically indistinguishable from the revised SLIDE ($p_{\mathrm{Holm}}={{vs|SLIDE (KBS version)|ph:.2f}}$) at {{=[main|SLIDE (KBS version)|t_update]/[main|SLIDE|t_update]:.1f}} times the update time. KSWIN on the score spends {{main|KSWIN-Score|labels:,.0f}} labels in {{main|KSWIN-Score|updates:.1f}} purchases and ends {{vs|KSWIN-Score|d:.3f}} MCC below SLIDE ({{vs|KSWIN-Score|wins:.0f}}/10, $p_{\mathrm{Holm}}={{vs|KSWIN-Score|ph:.4f}}$). The Friedman test rejects equal performance across the {{n_methods:.0f}} methods ($\chi^2_F={{friedman_chi2:.1f}}$); with a Nemenyi critical difference of {{nemenyi_cd:.2f}} ranks, SLIDE (mean rank {{rank|SLIDE:.1f}}) is separated from the static detectors and from the uniform, uncertainty and random-time samplers with the head, but not from the other adaptive methods.
+
+\input{tables/rev_stats.tex}
+
+Table~\ref{tab:rev-segments} locates the differences. On the human segments A--C, SLIDE is within 0.02 MCC of the best method in each. The gap to the online TF-IDF learner is concentrated in the LLM segment D ({{main|SLIDE|mcc|D:.3f}} against {{main|Online-TFIDF-SGD|mcc|D:.3f}}) and in the PhishFuzzer segment F ({{main|SLIDE|mcc|F:.3f}} against {{main|Online-TFIDF-SGD|mcc|F:.3f}}). In both, the TF-IDF learner receives every label from the first batch of the segment on, while SLIDE scores with the previous head until its purchased window arrives. SLIDE-TFIDF, which buys the same labels at the same alarms but updates the TF-IDF learner, closes most of the segment-F gap ({{main|SLIDE-TFIDF|mcc|F:.3f}}) and a third of the segment-D gap ({{main|SLIDE-TFIDF|mcc|D:.3f}}). Figure~\ref{fig:rev-trajectory} shows the batch-level picture: the head-based methods dip at the first batches of D and F and recover once labels arrive, and the static head stays near MCC 0.2--0.4 on the LLM segments.
+
+\input{tables/rev_segments.tex}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/rev_trajectory.pdf}
+\caption{Batch MCC along the A--G stream (mean over 10 realisations). Dotted lines mark segment boundaries.}
+\label{fig:rev-trajectory}
+\end{figure*}
+
+\subsection{When to buy labels: equal-budget controls}\label{sec:budgetctrl}
+The equal-budget rows of Table~\ref{tab:rev-main} hold the learner and the number of labels fixed and vary only when the labels are bought. With the head, spreading {{main|SLIDE|labels:,.0f}} labels uniformly over the stream gives {{main|Budget-Uniform-MLP|mcc:.3f}}, choosing the most uncertain messages gives {{main|Budget-Uncertainty-MLP|mcc:.3f}} and buying six windows at random batches gives {{main|Budget-Random|mcc:.3f}}. SLIDE exceeds each of them in all ten realisations by {{vs|Budget-Uniform-MLP|d:.3f}}, {{vs|Budget-Uncertainty-MLP|d:.3f}} and {{vs|Budget-Random|d:.3f}} MCC ($p_{\mathrm{Holm}}={{p_min_holm:.4f}}$ each, the smallest value the design allows). An oracle that buys a window as soon as 500 messages of each new segment exist reaches {{main|Budget-Oracle|mcc:.3f}}, {{=-[vs|Budget-Oracle|d]:.3f}} above SLIDE and not significantly so ($p_{\mathrm{Holm}}={{vs|Budget-Oracle|ph:.2f}}$). The same ordering holds with the TF-IDF learner: uniform {{main|Budget-Uniform-TFIDF|mcc:.3f}}, uncertainty {{main|Budget-Uncertainty-TFIDF|mcc:.3f}}, random times {{main|Budget-Random-TFIDF|mcc:.3f}}, SLIDE-TFIDF {{main|SLIDE-TFIDF|mcc:.3f}} and oracle {{main|Budget-Oracle-TFIDF|mcc:.3f}}. The trigger thus captures almost all of the value that knowledge of the true boundaries would give, for either learner, and the samplers that ignore the shift lose 0.05--0.13 MCC at the same cost.
+
+The uniform sampler loses most on the LLM segment D ({{main|Budget-Uniform-MLP|mcc|D:.3f}} against {{main|SLIDE|mcc|D:.3f}} for SLIDE). Twenty-one labels per batch arrive throughout D, but three epochs on each small set evidently do not move the head as far from the human-mail regime as one update on 500 labels of the new segment. Uncertainty sampling is worse than uniform sampling with the head ({{main|Budget-Uncertainty-MLP|mcc|D:.3f}} on D). This is consistent with a head that is confidently wrong on the new LLM traffic, so that the messages near a score of 0.5 are not the ones it misclassifies.
+
+\subsection{Ablation and retention}\label{sec:ablation}
+Table~\ref{tab:rev-ablation} removes or replaces one component at a time. Adaptation is necessary: without it the detector stays at the static level ({{abl|revised, no adaptation|mcc:.3f}}). The projections carry the trigger: a test on the score alone raises fewer alarms, buys {{abl|revised, score-only test|labels:,.0f}} labels and ends at {{abl|revised, score-only test|mcc:.3f}} ($p_{\mathrm{Holm}}={{abl|revised, score-only test|p:.4f}}$), while the projections-only test reproduces SLIDE. Either gate alone raises the same alarms on this stream; the conjunction matters on the null stream (Section~\ref{sec:null}). None of the update variants changes stream MCC measurably: the full four-term objective with or without $\psi$, warm start with replay, warm start without replay and retraining from scratch all lie within {{=abs([abl|warm+replay|d]):.3f}} MCC of the revised configuration ($p_{\mathrm{Holm}}\geq{{abl|warm+replay|p:.3f}}$). The surprisal features $\psi$ add nothing ({{abl|warm + psi|mcc:.3f}} with, {{abl|warm (revised update)|mcc:.3f}} without).
+
+\input{tables/rev_ablation.tex}
+
+Prequential MCC measures accuracy on the traffic at hand, not what a detector keeps from earlier campaigns. Table~\ref{tab:rev-retention} measures retention directly on a held-out pool from the sources of segments B--D. Every learner that updates only on recent data forgets: just before segment E SLIDE detects {{ret|SLIDE|preE:.3f}} of the pool, at the end of the stream {{ret|SLIDE|end:.3f}}; ADWIN-Retrain falls from {{ret|ADWIN-Retrain|preE:.3f}} to {{ret|ADWIN-Retrain|end:.3f}} and the oracle schedule from {{ret|Budget-Oracle|preE:.3f}} to {{ret|Budget-Oracle|end:.3f}}. Class-balanced replay removes the loss. With replay SLIDE keeps {{ret|SLIDE+replay|end:.3f}} at the end, the earlier design keeps {{ret|SLIDE (KBS version)|end:.3f}}, and the online TF-IDF learner, which never discards its weights, keeps {{ret|Online-TFIDF-SGD|end:.3f}}. Stream MCC cannot show this effect, because the stream never returns to an earlier source. SLIDE+replay reaches stream MCC {{main|SLIDE+replay|mcc:.3f}} (Table~\ref{tab:rev-main}) at {{=[main|SLIDE+replay|t_update]/[main|SLIDE|t_update]:.1f}} times the update time of SLIDE, and we recommend it wherever old campaigns may return.
+
+\input{tables/rev_retention.tex}
+
+%%K%%
+
+%%DELAY%%
+
+%%DESIGNS%%
+
+%%NULL%%
+
+%%REAL%%
+
+\subsection{Authorship slices}\label{sec:slices}
+LLM-written legitimate mail is easy to separate from human-written mail by style: a TF-IDF logistic regression tells the two apart with {{auth_probe:.4f}} macro-F1 under five-fold cross-validation on the legitimate messages alone. A detector can therefore lower its loss on segment D by learning authorship instead of intent. Table~\ref{tab:rev-slices} measures how much each method does so. SLIDE detects {{slice|SLIDE|D_llm|recall:.3f}} of the LLM-written phishing in D and flags {{slice|SLIDE|D_llm|fpr:.3f}} of the LLM-written legitimate mail, against {{slice|SLIDE|D_human|fpr:.3f}} of the human legitimate mail in the same batches. The online TF-IDF learner reaches the same recall at an FPR of {{slice|Online-TFIDF-SGD|D_llm|fpr:.3f}} on that slice, and SLIDE-TFIDF, with the same {{main|SLIDE-TFIDF|labels:,.0f}} labels as SLIDE, at {{slice|SLIDE-TFIDF|D_llm|fpr:.3f}}. The excess FPR is therefore a property of the frozen-encoder head, not of the label budget. Segment F tests the confound directly, because there LLM-written legitimate mail is as frequent as LLM-written phishing and a style rule would flag half of the LLM traffic wrongly. SLIDE, SLIDE-TFIDF, ADWIN-Retrain and Online-TFIDF-SGD keep the F-segment FPR on LLM-written legitimate mail between {{slice|SLIDE-TFIDF|F_llm|fpr:.3f}} and {{slice|SLIDE|F_llm|fpr:.3f}} at recall above 0.91, so once legitimate LLM mail is labelled in the purchased window, the detectors do learn to separate it from LLM phishing. The highest FPR on legitimate mail is on the paraphrased segment E, where SLIDE flags {{slice|SLIDE|E_para|fpr:.3f}} of the paraphrased legitimate messages and SLIDE-TFIDF {{slice|SLIDE-TFIDF|E_para|fpr:.3f}}.
+
+\input{tables/rev_slices.tex}
+
+%%STRESS%%
+
+%%COST%%

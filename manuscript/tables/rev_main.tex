@@ -1,0 +1,34 @@
+\begin{table*}[t]
+\centering
+\caption{Prequential results on the seven-segment stream A--G (36{,}000 messages, mean\,$\pm$\,95\% CI half-width over 10 realisations). Labels: stream labels consumed after warm-up; Upd.: model updates per stream. The Budget-* rows spend the same number of labels as SLIDE, either spread over the stream (uniform, uncertainty) or as four windows at random batches or right after each true change (oracle).}
+\label{tab:rev-main}
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\resizebox{\textwidth}{!}{\begin{tabular}{@{}lccccccc@{}}
+\toprule
+Method & Precision & Recall & MCC & PR-AUC & FPR & Labels & Upd. \\
+\midrule
+TFIDF-LR & 0.759\,$\pm$\,0.001 & 0.891\,$\pm$\,0.001 & 0.702\,$\pm$\,0.001 & 0.877\,$\pm$\,0.001 & 0.172\,$\pm$\,0.001 & 0 & 0.0 \\
+Online-TFIDF-SGD & 0.941\,$\pm$\,0.003 & 0.939\,$\pm$\,0.001 & 0.904\,$\pm$\,0.002 & 0.980\,$\pm$\,0.001 & 0.036\,$\pm$\,0.002 & 35500 & every batch \\
+Static-FT & 0.881\,$\pm$\,0.001 & 0.688\,$\pm$\,0.002 & 0.671\,$\pm$\,0.001 & 0.901\,$\pm$\,0.001 & 0.056\,$\pm$\,0.000 & 0 & 0.0 \\
+\midrule
+Static-MLP & 0.846\,$\pm$\,0.002 & 0.719\,$\pm$\,0.004 & 0.664\,$\pm$\,0.002 & 0.855\,$\pm$\,0.003 & 0.079\,$\pm$\,0.001 & 0 & 0.0 \\
+Online-MLP & 0.915\,$\pm$\,0.003 & 0.940\,$\pm$\,0.001 & 0.883\,$\pm$\,0.003 & 0.972\,$\pm$\,0.001 & 0.053\,$\pm$\,0.002 & 35500 & every batch \\
+ADWIN-Retrain & 0.927\,$\pm$\,0.004 & 0.937\,$\pm$\,0.003 & 0.891\,$\pm$\,0.003 & 0.973\,$\pm$\,0.002 & 0.045\,$\pm$\,0.003 & 35500 & 5.6 \\
+KSWIN-Score & 0.926\,$\pm$\,0.004 & 0.907\,$\pm$\,0.013 & 0.867\,$\pm$\,0.012 & 0.966\,$\pm$\,0.006 & 0.044\,$\pm$\,0.002 & 9700 & 19.4 \\
+Budget-Uniform-MLP & 0.871\,$\pm$\,0.005 & 0.905\,$\pm$\,0.002 & 0.818\,$\pm$\,0.005 & 0.944\,$\pm$\,0.003 & 0.082\,$\pm$\,0.004 & 2982 & 0.0 \\
+\midrule
+Budget-Uncertainty-MLP & 0.921\,$\pm$\,0.007 & 0.815\,$\pm$\,0.013 & 0.794\,$\pm$\,0.008 & 0.926\,$\pm$\,0.005 & 0.043\,$\pm$\,0.005 & 2982 & 0.0 \\
+Budget-Uniform-TFIDF & 0.890\,$\pm$\,0.006 & 0.898\,$\pm$\,0.007 & 0.829\,$\pm$\,0.007 & 0.954\,$\pm$\,0.003 & 0.067\,$\pm$\,0.004 & 2982 & 0.0 \\
+Budget-Uncertainty-TFIDF & 0.917\,$\pm$\,0.006 & 0.873\,$\pm$\,0.008 & 0.834\,$\pm$\,0.006 & 0.955\,$\pm$\,0.004 & 0.048\,$\pm$\,0.004 & 2982 & 0.0 \\
+Budget-Random & 0.867\,$\pm$\,0.024 & 0.851\,$\pm$\,0.027 & 0.774\,$\pm$\,0.033 & 0.917\,$\pm$\,0.019 & 0.080\,$\pm$\,0.016 & 3000 & 5.5 \\
+Budget-Oracle & 0.929\,$\pm$\,0.003 & 0.936\,$\pm$\,0.002 & 0.891\,$\pm$\,0.002 & 0.969\,$\pm$\,0.002 & 0.044\,$\pm$\,0.002 & 3000 & 6.0 \\
+Budget-Random-TFIDF & 0.843\,$\pm$\,0.027 & 0.856\,$\pm$\,0.042 & 0.756\,$\pm$\,0.038 & 0.920\,$\pm$\,0.020 & 0.098\,$\pm$\,0.020 & 3000 & 5.5 \\
+Budget-Oracle-TFIDF & 0.930\,$\pm$\,0.004 & 0.929\,$\pm$\,0.002 & 0.887\,$\pm$\,0.004 & 0.976\,$\pm$\,0.002 & 0.042\,$\pm$\,0.002 & 3000 & 6.0 \\
+\midrule
+SLIDE (earlier design) & 0.924\,$\pm$\,0.004 & 0.937\,$\pm$\,0.002 & 0.888\,$\pm$\,0.003 & 0.967\,$\pm$\,0.002 & 0.047\,$\pm$\,0.003 & 3000 & 6.0 \\
+\textbf{SLIDE} & 0.927\,$\pm$\,0.004 & 0.936\,$\pm$\,0.004 & 0.889\,$\pm$\,0.003 & 0.969\,$\pm$\,0.002 & 0.045\,$\pm$\,0.003 & 3000 & 6.0 \\
+\textbf{SLIDE}-TFIDF & 0.924\,$\pm$\,0.005 & 0.933\,$\pm$\,0.004 & 0.885\,$\pm$\,0.004 & 0.975\,$\pm$\,0.001 & 0.047\,$\pm$\,0.003 & 3000 & 6.0 \\
+\bottomrule
+\end{tabular}}
+\end{table*}

@@ -61,6 +61,7 @@ def methods_main():
             ("Budget-Uniform-TFIDF", {}), ("Budget-Uncertainty-TFIDF", {}),
             ("Budget-Random", REV), ("Budget-Oracle", REV), ("Budget-Random-TFIDF", {}), ("Budget-Oracle-TFIDF", {}),
             ("SLIDE", REV), ("SLIDE-TFIDF", dict(spend="harmonic")),
+            ("SLIDE+replay", dict(REV, update="warm+replay")),
             ("SLIDE (KBS version)", dict(update="full", spend="none", psi=True))]
 
 

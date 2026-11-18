@@ -1,0 +1,18 @@
+\begin{table}[t]
+\centering
+\caption{Pools added in this revision (legitimate/malicious counts), disjoint from each other and from the pools of Table~\ref{tab:pools}. One PhishFuzzer variant is kept per seed message.}
+\label{tab:rev-pools}
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}lrrp{8.5cm}@{}}
+\toprule
+Pool & Legit. & Malic. & Sources (legit./malic.) \\
+\midrule
+segment F (LLM) & 1100 & 926 & PhishFuzzer 1100/926 \\
+segment F (human) & 3000 & 0 & CEAS-08 546/0; TREC-05 1157/0; TREC-06 441/0; TREC-07 856/0 \\
+segment G & 3203 & 3461 & ES-enron\_ham 2717/0; ES-hard\_ham 486/0; ES-spear\_phishing 0/316; ES-traditional\_phishing 0/3145 \\
+stress pool 2 & 0 & 400 & ES-spear\_phishing 0/18; ES-traditional\_phishing 0/182; PhishFuzzer 0/200 \\
+real-drift probe & 6000 & 6000 & TREC-05 2749/2433; TREC-06 1118/409; TREC-07 2133/3158 \\
+\bottomrule
+\end{tabular}
+\end{table}

@@ -1,0 +1,22 @@
+\begin{table*}[t]
+\centering
+\caption{MCC and labels under four stream designs (5 realisations each, $r=0,\dots,4$): abrupt (default), gradual (2{,}000-message mixing zones), variable segment lengths, and permuted segment order.}
+\label{tab:rev-designs}
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\resizebox{\textwidth}{!}{\begin{tabular}{@{}lcccccccc@{}}
+\toprule
+Method & abrupt MCC & Lab. & gradual MCC & Lab. & varlen MCC & Lab. & permuted MCC & Lab. \\
+\midrule
+SLIDE & 0.888 & 3000 & -- & -- & -- & -- & -- & -- \\
+SLIDE-TFIDF & 0.885 & 3000 & -- & -- & -- & -- & -- & -- \\
+ADWIN-Retrain & 0.889 & 35500 & -- & -- & -- & -- & -- & -- \\
+Online-TFIDF-SGD & 0.902 & 35500 & -- & -- & -- & -- & -- & -- \\
+Budget-Uniform-TFIDF & 0.825 & 2982 & -- & -- & -- & -- & -- & -- \\
+Budget-Uniform-MLP & 0.815 & 2982 & -- & -- & -- & -- & -- & -- \\
+Budget-Random & 0.782 & 3000 & -- & -- & -- & -- & -- & -- \\
+Budget-Oracle & 0.890 & 3000 & -- & -- & -- & -- & -- & -- \\
+Static-MLP & 0.664 & 0 & -- & -- & -- & -- & -- & -- \\
+\bottomrule
+\end{tabular}}
+\end{table*}

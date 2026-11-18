@@ -1,0 +1,38 @@
+Comments for author
+
+Sort and filter
+Reviewer 1 -
+ Initial submission, 
+November 14
+Minor Issues:
+
+· Two-gate alarm logic combines KS tests and sliced-Wasserstein distances, although interactions between overlapping windows and repeated testing remain unresolved in sequential email monitoring.
+
+· Proposition 2 controls an individual test's asymptotic false-alarm rate during error accumulation across roughly 80 tests, but is inaccurate in repeated alarm evaluation involving overlapping windows.
+
+· Limited generator diversity involving GPTGen, SpearGen, and T5 paraphrasing restricts evidence on multilingual phishing campaigns, independent language models, changing domains, varied sender populations and diverse writing styles.
+
+· Virtual drift analysis assumes an unchanged conditional distribution, leaving phishing label changes despite stable embedding marginals omitted from the specified monitoring design throughout sequential email adaptation.
+
+· Class-balanced replay stores historical examples and applies proximal regularisation, while ablations show removing both causes no measurable MCC decline, making their necessity questionable in tested settings.
+
+Major Issues:
+
+Adversarial training changes MCC by only 0.003 during the certificate fraction improves modestly, making its practical contribution ineffective against character perturbations and prefix attacks. Furthermore, benign-prefix padding of 400 characters reduces transformer detection rates toward 0.046–0.106, exposing faulty resilience with the 128-token truncation strategy across tested attack cases. Moreover, character perturbations and T5 paraphrasing form the stress tests, whereas narrow attack construction makes robustness against diverse phishing transformations ambiguous over distinct generator families and writing styles. Besides, surprisal extraction consumes approximately 70% of inference cost, also removing these features produces no measurable performance loss, indicating inefficient feature allocation in online detection under tested settings. Finally, four language-model surprisal features augment DistilRoBERTa representations, yet their incremental discrimination beyond embedding-based scores is incomplete in ablation evidence concerning phishing classification performance across tested configurations.
+
+
+Show less
+Reviewer 2 -
+ Initial submission, 
+November 16
+Summary:
+
+The paper considers phishing detection using LLMs via label-less drift detection and budgeted adaptation. Major technical concerns include restricted generator diversity, predefined stream construction, elevated false-positive rates on legitimate LLM-generated emails, MCC than Online-TFIDF-SGD, false-alarm control, and vulnerability to benign-prefix attacks.
+
+Positive:
+
+A structured SLIDE framework integrating DistilRoBERTa embeddings, sliced-Wasserstein distance, KS-based drift detection, and budgeted label acquisition for detecting LLM-generated phishing. Its evaluation includes 28,000 emails, five stream segments, multiple baseline comparisons, ablation experiments, and adversarial tests involving paraphrasing, character perturbations, and benign-prefix attacks.
+
+Weakness:
+
+The sliced-Wasserstein detector fixes K at 64 random projections causing directional sensitivity to heterogeneous embedding shifts to be unexamined across alternative configurations under changing distribution patterns. Furthermore, drift alarms trigger acquisition of 500 annotations, whereas adaptation sensitivity to smaller annotation budgets remains unsubstantiated given the fixed batch size across transitions in practical monitoring. Moreover, insufficient traffic diversity follows five predefined phases, restricting evidence on naturally evolving correspondence, changing sources, campaign transitions, temporal patterns, distinct sender populations, and shifting content characteristics. Additionally, ten independent realizations reuse identical segment construction, making transfer beyond constructed traffic unsupported despite repeated trials involving similar campaign transitions across all sequences of the same design. Also, annotation acquisition assigns 500 examples after each alarm, leaving variation in annotation delays uncertain amid changing operational availability across sequential adaptation in practical deployment settings. In addition, seven human corpora plus two LLM-produced corpora provide deficient coverage of languages, domains, generator characteristics, and sender behaviours despite 28,000 emails spanning five predefined phases. However, DistilRoBERTa embeddings combine 768 dimensions and four surprisal features making their joint contribution toward separating phishing intent from LLM authorship unclear in controlled comparisons involving legitimate correspondence. Therefore, LLM-authorship classification reaches 0.9996 macro-F1 on legitimate correspondence, indicating misleading reliance on writing origin as a proxy for phishing-related distribution change in sampled corpora overall. Besides, segment D reports 88% recall on LLM-written phishing, while the 15.7% false-positive rate on legitimate LLM-authored correspondence exposes inadequate class discrimination in automated screening systems. Finally, online-TFIDF-SGD achieves MCC 0.905 against SLIDE's 0.898, making the claimed advantage of sliced-Wasserstein adaptation unconvincing under the strongest baseline comparison involving matched annotation budgets.

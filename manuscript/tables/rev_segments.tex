@@ -1,0 +1,31 @@
+\begin{table*}[t]
+\centering
+\caption{MCC per segment of the A--G stream (mean over 10 realisations; best per column in bold).}
+\label{tab:rev-segments}
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\resizebox{\textwidth}{!}{\begin{tabular}{@{}lccccccc@{}}
+\toprule
+Method & A & B & C & D & E & F & G \\
+\midrule
+TFIDF-LR & \textbf{0.956} & 0.825 & 0.891 & 0.433 & 0.570 & 0.708 & 0.405 \\
+Online-TFIDF-SGD & 0.925 & 0.869 & 0.920 & \textbf{0.892} & \textbf{0.899} & \textbf{0.895} & \textbf{0.889} \\
+Static-FT & 0.948 & 0.824 & 0.711 & 0.221 & 0.433 & 0.453 & 0.665 \\
+Static-MLP & 0.951 & 0.832 & 0.719 & 0.236 & 0.443 & 0.375 & 0.659 \\
+Online-MLP & 0.945 & 0.889 & \textbf{0.922} & 0.769 & 0.898 & 0.843 & 0.841 \\
+ADWIN-Retrain & 0.951 & \textbf{0.892} & 0.915 & 0.827 & 0.864 & 0.833 & 0.870 \\
+KSWIN-Score & 0.947 & 0.877 & 0.896 & 0.757 & 0.843 & 0.820 & 0.828 \\
+Budget-Uniform-MLP & 0.949 & 0.854 & 0.875 & 0.618 & 0.807 & 0.759 & 0.731 \\
+Budget-Uncertainty-MLP & 0.946 & 0.871 & 0.787 & 0.471 & 0.817 & 0.813 & 0.759 \\
+Budget-Uniform-TFIDF & 0.922 & 0.793 & 0.859 & 0.758 & 0.815 & 0.809 & 0.754 \\
+Budget-Uncertainty-TFIDF & 0.916 & 0.823 & 0.806 & 0.752 & 0.861 & 0.868 & 0.774 \\
+Budget-Random & 0.949 & 0.864 & 0.768 & 0.548 & 0.810 & 0.766 & 0.624 \\
+Budget-Oracle & 0.951 & \textbf{0.893} & 0.915 & 0.815 & 0.883 & 0.844 & 0.856 \\
+Budget-Random-TFIDF & 0.941 & 0.834 & 0.745 & 0.573 & 0.782 & 0.808 & 0.569 \\
+Budget-Oracle-TFIDF & 0.941 & 0.858 & 0.897 & 0.852 & 0.872 & 0.894 & 0.848 \\
+SLIDE (earlier design) & 0.950 & 0.879 & 0.915 & 0.825 & 0.896 & 0.835 & 0.839 \\
+SLIDE & 0.951 & 0.880 & 0.915 & 0.818 & 0.885 & 0.842 & 0.860 \\
+SLIDE-TFIDF & 0.941 & 0.849 & 0.895 & 0.841 & 0.871 & 0.892 & 0.859 \\
+\bottomrule
+\end{tabular}}
+\end{table*}

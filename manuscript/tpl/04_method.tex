@@ -1,0 +1,100 @@
+\section{Drift-triggered label acquisition}\label{sec:method}
+
+SLIDE has three parts (Fig.~\ref{fig:arch}): a sliced two-gate drift test on a frozen representation (Section~\ref{sec:test}), a sequential level schedule that bounds false alarms over overlapping windows (Section~\ref{sec:spend}), and a label-on-alarm policy that buys the labels of the alarm window and hands them to a learner (Section~\ref{sec:policy}). The learner is a parameter of the policy. In this paper it is either the two-layer head on $\phi$ used by every head-based baseline or an online TF-IDF learner, the strongest fully supervised method in Section~\ref{sec:main}; the test itself always runs on $\phi$, so both learners receive the same kind of alarm.
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[node distance=5mm and 7mm, every node/.style={font=\scriptsize}, box/.style={draw, rounded corners=2pt, align=center, minimum height=8mm, inner sep=2pt}, lab/.style={font=\tiny, fill=white, inner sep=1pt}, >=Stealth]
+\node[box] (x) {e-mail $x$};
+\node[box, right=of x] (enc) {frozen encoder\\ $z=\Phi(x)\in\mathbb{R}^{768}$};
+\node[box, right=of enc] (h) {learner\\ (head or TF-IDF)};
+\node[box, right=of h] (s) {score\\ $f_t(x)$};
+\node[box, below=10mm of enc] (t) {sliced KS + $SW_1$ test\\ level $\alpha_j$};
+\node[box, below=10mm of h, xshift=10mm] (p) {buy labels of\\ alarm window};
+\node[box, right=8mm of p] (u) {update learner,\\ rebuild reference};
+\draw[->] (x) -- (enc); \draw[->] (enc) -- (h); \draw[->] (h) -- (s);
+\draw[->] (enc) -- node[lab, left]{projections} (t);
+\draw[->] (h.south west) -- node[lab, pos=0.4]{score} (t.north east);
+\draw[->, dashed] (t) -- node[lab, above]{alarm} (p);
+\draw[->, dashed] (p) -- node[lab, above]{$+D_t$} (u);
+\draw[->, dashed] (u.north) -- (s.south);
+\end{tikzpicture}
+\caption{SLIDE data flow. Solid arrows run for every batch; dashed arrows run only after an alarm, when the labels of the alarm window are bought and arrive $D_t$ batches later. The test reads the frozen representation and the current learner's score.}
+\label{fig:arch}
+\end{figure}
+
+\subsection{Sliced two-gate drift test}\label{sec:test}
+SLIDE holds a reference matrix $R\in\mathbb{R}^{n_R\times d}$ of the first $n_R$ unlabelled stream representations scored by the current learner (never the data it was fitted on) and a set $\Theta=[\theta_1,\dots,\theta_K]$ of random unit directions drawn once. The learner's score $s(x)=f_t(x)$ is appended as projection $K+1$, because it is the one-dimensional summary that the decision rule thresholds. After each batch the test window $W$ is formed from the last $n_W$ representations, and a test is run only once $n_W$ messages have arrived after $R$ was frozen, so that $W$ and $R$ never share a message. Consecutive windows do share messages: with $n_W=500$ and $b=250$, each window overlaps the previous one by half. Two gates are evaluated at the $j$-th test after the reference was frozen.
+
+\emph{KS gate.} For each projection compute the asymptotic two-sample Kolmogorov--Smirnov $p$-value $p_{j,k}$, $k=1,\dots,K+1$. The gate fires if the Holm step-down procedure rejects at least one of the $K+1$ hypotheses at level $\alpha_j$, which is equivalent to $\min_k p_{j,k}\le\alpha_j/(K+1)$.
+
+\emph{SW gate.} Compute $\widehat{SW}_1(R,W)=K^{-1}\sum_{k=1}^K W_1(\theta_{k\#}\hat R,\theta_{k\#}\hat W)$ from sorted samples. The threshold $\tau_\alpha$ is the empirical $(1-\alpha)$ quantile of $\widehat{SW}_1(R_1,R_2)$ over $B=100$ random disjoint pairs $R_1,R_2\subset R$ of size $\min(n_W,\lfloor n_R/2\rfloor)$. The gate fires if $\widehat{SW}_1(R,W)>\tau_\alpha$.
+
+An alarm requires both gates. The KS gate carries the error control; the SW gate is an effect-size margin calibrated on the reference itself, so that the detector does not react to differences that are detectable at gateway volume but too small to matter \cite{demsar2006}. Section~\ref{sec:ablation} tests whether each gate earns its place.
+
+\subsection{False alarms over overlapping windows}\label{sec:spend}
+A single KS gate at a fixed level $\alpha$ controls the false-alarm probability of one test. A stream runs many tests on the same reference, and their windows overlap, so the per-test guarantee says little about the stream. SLIDE therefore spends the level over the tests of a reference epoch with the harmonic schedule
+\begin{equation}
+\alpha_j=\frac{\alpha}{j(j+1)},\qquad j=1,2,\dots,\qquad \sum_{j\ge1}\alpha_j=\alpha ,
+\label{eq:spend}
+\end{equation}
+and restarts the count $j$ whenever the reference is rebuilt.
+
+\begin{proposition}[Stream-level false-alarm control]\label{prop:fwer}
+Fix a reference epoch, i.e.\ the tests $j=1,\dots,J$ run between two reference rebuilds. Suppose that the rows of $R$ and of every test window are draws from the same continuous distribution $Q$, that $\Theta$ is drawn independently of the data, and that the score projection is a fixed function fitted on data disjoint from $R$ and from the windows. Then, asymptotically in $n_R$ and $n_W$,
+\[
+\Pr(\text{at least one alarm among tests }1,\dots,J)\le\alpha\Big(1-\frac{1}{J+1}\Big)<\alpha ,
+\]
+whatever the overlap between windows and the dependence among the tests. On a stream without change points, the probability of any false alarm is at most $\alpha$.
+\end{proposition}
+\begin{proof}
+Let $A_j$ be the event that test $j$ raises an alarm. Conditionally on $\Theta$, each projected pair $(\langle\theta_k,R\rangle,\langle\theta_k,W_j\rangle)$ consists of two samples from the same continuous univariate law, so each $p_{j,k}$ is asymptotically super-uniform; this holds marginally for every $j$, whichever messages $W_j$ shares with $W_{j-1}$. Holm's procedure controls the family-wise error rate under arbitrary dependence among the $K+1$ $p$-values, hence $\Pr(\text{KS gate at }j)\le\alpha_j$, and an alarm also requires the SW gate, so $\Pr(A_j)\le\alpha_j$. Boole's inequality gives $\Pr(\bigcup_{j\le J}A_j)\le\sum_{j\le J}\alpha/(j(j+1))=\alpha\,(1-1/(J+1))$; no independence between tests is used. A stream without change points has a single reference epoch until the first alarm, so the bound covers the whole stream.
+\end{proof}
+
+The bound is paid for in power: the $j$-th test needs $\min_k p_{j,k}\le\alpha/(j(j+1)(K+1))$, so a change that arrives late in a long epoch must be larger to be seen at once. An alternative is $\alpha$-investing \cite{foster2008}, which earns back level after each rejection; the harmonic schedule is simpler. On the A--G stream it delayed {{spend|n_later:.0f}} of {{spend|n_bound:.0f}} detections, by one to {{spend|max_later:.0f}} batches, and raised the mean delay from {{spend|delay|none:.2f}} to {{spend|delay|harm:.2f}} batches without changing the labels bought or the stream MCC (Section~\ref{sec:ablation}); its benefit, fewer false alarms on stationary traffic, is measured in Section~\ref{sec:null}. Proposition~\ref{prop:fwer} covers only false alarms under stationarity. It says nothing about changes that leave $Q$ intact.
+
+\begin{proposition}[What an alarm certifies]\label{prop:sw}
+For any $Q,Q'$ with finite first moments, $SW_1(Q,Q')\le W_1(Q,Q')$, and $SW_1(Q,Q')=0$ if and only if $Q=Q'$. If the conditional expected loss $g(z)=\mathbb{E}[\ell(h(z),Y)\mid\Phi(X)=z]$ is $L_g$-Lipschitz and the posterior is unchanged (virtual drift), then $|\mathcal{R}_{Q'}(h)-\mathcal{R}_{Q}(h)|\le L_g\,W_1(Q,Q')$.
+\end{proposition}
+\begin{proof}
+For fixed $\theta\in\mathbb{S}^{d-1}$ the map $z\mapsto\langle\theta,z\rangle$ is 1-Lipschitz, so the image of any coupling $\gamma$ of $(Q,Q')$ satisfies $\int|\langle\theta,z-z'\rangle|\,\mathrm{d}\gamma\le\int\lVert z-z'\rVert\,\mathrm{d}\gamma$; taking the infimum and averaging over $\theta$ gives the inequality. If $SW_1=0$ then $\theta_\#Q=\theta_\#Q'$ for $\sigma$-almost every $\theta$, by continuity for all $\theta$, and $Q=Q'$ by the Cram\'er--Wold theorem. The risk bound follows from Kantorovich--Rubinstein duality.
+\end{proof}
+A large $\widehat{SW}_1$ is a lower bound on the transport cost between the two regimes, but a small one does not bound the risk change, and real drift with $Q_s=Q_t$ is invisible to any label-free test. Section~\ref{sec:realdrift} measures this blind spot and a cheap remedy.
+
+\subsection{Label-on-alarm acquisition}\label{sec:policy}
+When an alarm is raised at batch $t$, SLIDE buys the labels of the last $\lceil n_\ell/b\rceil$ batches (the alarm window, $n_\ell=500$ messages). They arrive together at $t+D_t$, where $D_t$ is the verification delay of batch $t$; further tests are suspended until then. When the labels arrive, the learner is updated, the labelled window is discarded, and the reference is rebuilt from the next $n_R$ messages scored by the updated learner, so that the next test compares post-update data with post-update data and the level count restarts at $j=1$.
+
+The update depends on the learner. For the head $h_\theta(z)=W_2\,\mathrm{GELU}(W_1z+c_1)+c_2$ ($W_1\in\mathbb{R}^{256\times768}$, dropout 0.1), SLIDE warm-starts from the current parameters and minimises the class-weighted cross-entropy on the purchased window for 30 epochs. For the TF-IDF learner (hashed word 1--2-grams, logistic SGD), it runs five passes of \texttt{partial\_fit} over the window. SLIDE+replay adds one option to the head update: the warm-up set and every purchased window are inserted into a class-balanced memory of at most 1{,}000 items per class (per-class reservoir sampling), and each mini-batch of the update is paired with an equally sized replay sample from the memory, weighted equally in the loss. An earlier design of SLIDE also added a representation-space adversarial term, a proximal penalty and four surprisal features; Section~\ref{sec:ablation} shows that none of these three changed accuracy or retention, and they are not part of the method described here. Algorithm~\ref{alg:slide} lists the procedure.
+
+\begin{algorithm}[t]
+\caption{SLIDE: drift-triggered label acquisition}\label{alg:slide}
+\small
+\begin{algorithmic}[1]
+\Require warm-up set $\mathcal{W}$, frozen encoder $\Phi$, learner $\mathcal{A}$, $K,\alpha,B,n_R,n_W,n_\ell$, delays $D_t$
+\State fit $\mathcal{A}$ on $\mathcal{W}$; draw $\Theta\in\mathbb{R}^{d\times K}$ with i.i.d.\ uniform unit columns; mark $R$ stale; $t_{\mathrm{ready}}\gets-\infty$
+\For{$t=1,2,\dots$}
+  \State $Z_t\gets\Phi(B_t)$; \textbf{emit} $f_t=\mathcal{A}(B_t)$; append $(Z_t,f_t)$ to the buffer \Comment{test first}
+  \If{$R$ stale}
+    \If{$n_R$ rows are buffered} $R\gets$ last $n_R$ rows; $\tau_\alpha\gets\textsc{Calibrate}(R,B)$; $m\gets0$; $j\gets0$ \EndIf
+  \Else
+    \State $m\gets m+b$
+    \If{$m\ge n_W$ \textbf{and} $t>t_{\mathrm{ready}}$}
+      \State $j\gets j+1$; $\alpha_j\gets\alpha/(j(j+1))$; $W\gets$ last $n_W$ rows
+      \State $p_k\gets\mathrm{KS}(\langle\theta_k,R\rangle,\langle\theta_k,W\rangle)$, $k\le K$; $p_{K+1}\gets\mathrm{KS}(s(R),s(W))$
+      \If{$\min_k p_k\le\alpha_j/(K+1)$ \textbf{and} $\widehat{SW}_1(R,W)>\tau_\alpha$}
+        \State request labels of batches $t-\lceil n_\ell/b\rceil+1,\dots,t$, due at $t+D_t$; $t_{\mathrm{ready}}\gets t+D_t$
+      \EndIf
+    \EndIf
+  \EndIf
+  \If{labels $\mathcal{S}$ are due at $t$}
+    \State update $\mathcal{A}$ on $\mathcal{S}$ (warm start); mark $R$ stale; clear the buffer
+  \EndIf
+\EndFor
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Scoring long messages}\label{sec:chunk}
+The encoder reads $L=128$ sub-word tokens, and the earlier evaluation showed that a benign prefix of 400 characters pushes the lure out of that window. Training, the drift test and label purchases keep using the first window. For scoring, SLIDE can optionally split a message into consecutive windows of 126 content tokens (plus the two special tokens), keep the first four and, for longer messages, the last one, and report the maximum score over these windows. Window 0 is exactly $\Phi(x)$, so the option never lowers the score of a message and costs one extra encoder pass per additional window. The approach follows hierarchical treatments of long documents \cite{pappagari2019}, reduced to a maximum because a lure needs to appear only once. Section~\ref{sec:stress} measures what it recovers and what it costs on legitimate mail.
+
+\subsection{Complexity}\label{sec:complexity}
+Let $C_\phi$ be the per-message cost of the encoder pass and $n=n_R+n_W$. Scoring a batch costs $\mathcal{O}(b\,C_\phi)$ plus the learner's own scoring cost. One drift test costs $\mathcal{O}(n_WdK+Kn\log n)$ time, reducible to $\mathcal{O}(n_WdK+Kn_W\log n_W+Kn)$ by keeping the projected reference sorted, and calibration costs $\mathcal{O}(n_RdK+BKn_R\log n_R)$ once per reference. The persistent state of the test occupies $\mathcal{O}(dK+Kn_R)$ memory. With $K=64$, $n_R=1000$ and $n_W=500$ the test does not depend on the batch size; Section~\ref{sec:cost} reports measured times.

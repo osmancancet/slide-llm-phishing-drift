@@ -1,0 +1,17 @@
+\begin{table}[t]
+\centering
+\caption{MCC under label delay (5 realisations, $r=0,\dots,4$). $D$ is the delay in batches of 250 messages; rand$a$--$b$ draws each batch's delay uniformly from $\{a,\dots,b\}$. $D=2$ is the default of Table~\ref{tab:rev-main}.}
+\label{tab:rev-delay}
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}lccccccc@{}}
+\toprule
+Method & $D$=1 & $D$=2 & $D$=4 & $D$=8 & $D$=16 & rand 1-8 & rand 1-16 \\
+\midrule
+SLIDE & -- & 0.888 & -- & -- & -- & -- & -- \\
+SLIDE-TFIDF & -- & 0.885 & -- & -- & -- & -- & -- \\
+Online-TFIDF-SGD & -- & 0.902 & -- & -- & -- & -- & -- \\
+Budget-Uniform-TFIDF & -- & 0.825 & -- & -- & -- & -- & -- \\
+\bottomrule
+\end{tabular}
+\end{table}

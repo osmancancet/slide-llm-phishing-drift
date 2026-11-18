@@ -1,0 +1,18 @@
+\begin{table}[t]
+\centering
+\caption{Number of random projections $K$ (revised SLIDE, 5 realisations, six boundaries per stream). Delay: batches from a boundary to the first alarm in the new segment; miss: share of boundaries without an alarm before the next boundary; extra: further alarms per stream; sig.: share of projections individually significant at the Holm level in alarming tests; CV$_{W_1}$: coefficient of variation of the per-projection $W_1$ distances; $t$: total test time (s).}
+\label{tab:rev-K}
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}lccccccccc@{}}
+\toprule
+$K$ & MCC & Labels & Alarms & Delay & Miss & Extra & Sig. & CV$_{W_1}$ & $t$ \\
+\midrule
+2 & 0.861\,$\pm$\,0.042 & 2167 & 4.3 & 1.77 & 0.28 & 0.0 & 0.45 & 0.21 & 14.1 \\
+4 & 0.881\,$\pm$\,0.109 & 2500 & 5.0 & 0.80 & 0.17 & 0.0 & 0.44 & 0.32 & 13.3 \\
+8 & 0.879\,$\pm$\,0.014 & 2750 & 5.5 & 2.09 & 0.08 & 0.0 & 0.33 & 0.36 & 13.8 \\
+16 & 0.882\,$\pm$\,0.000 & 3000 & 6.0 & 1.33 & 0.00 & 0.0 & 0.21 & 0.39 & 14.6 \\
+32 & 0.889\,$\pm$\,0.000 & 3000 & 6.0 & 0.67 & 0.00 & 0.0 & 0.20 & 0.38 & 23.7 \\
+\bottomrule
+\end{tabular}
+\end{table}

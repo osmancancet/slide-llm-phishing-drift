@@ -1,0 +1,25 @@
+\begin{table*}[t]
+\centering
+\caption{Component ablation on the A--G stream (10 realisations). $\Delta$ and $p_{\mathrm{Holm}}$ compare each variant with the revised configuration (warm-start update, no $\psi$, $\alpha$-spending) by a two-sided Wilcoxon test on realisation-level MCC, Holm-corrected. Upd.\,s: total update time per stream in seconds.}
+\label{tab:rev-ablation}
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\resizebox{\textwidth}{!}{\begin{tabular}{@{}lcccccccc@{}}
+\toprule
+Variant & MCC & PR-AUC & MCC (F) & MCC (G) & Labels & Upd.\,s & $\Delta$ & $p_{\mathrm{Holm}}$ \\
+\midrule
+full objective + $\psi$ (earlier design) & 0.888\,$\pm$\,0.003 & 0.967 & 0.835 & 0.839 & 3000 & 914.4 & -0.001 & 0.844 \\
+full objective, no $\psi$ & 0.887\,$\pm$\,0.003 & 0.966 & 0.834 & 0.839 & 3000 & 867.4 & -0.002 & 1 \\
+warm+replay & 0.884\,$\pm$\,0.003 & 0.963 & 0.827 & 0.829 & 3000 & 253.1 & -0.005 & 0.0527 \\
+warm (revised update) & 0.889\,$\pm$\,0.002 & 0.969 & 0.844 & 0.857 & 3000 & 150.0 & +0.000 & 1 \\
+scratch & 0.890\,$\pm$\,0.003 & 0.974 & 0.844 & 0.874 & 3000 & 144.0 & +0.001 & 1 \\
+warm + $\psi$ & 0.890\,$\pm$\,0.002 & 0.969 & 0.845 & 0.855 & 3000 & 147.7 & +0.001 & 1 \\
+revised + $\alpha$-spending & 0.889\,$\pm$\,0.003 & 0.969 & 0.842 & 0.860 & 3000 & 138.1 & -- & -- \\
+revised, KS gate only & 0.889\,$\pm$\,0.002 & 0.969 & 0.842 & 0.860 & 3000 & 140.1 & +0.000 & 1 \\
+revised, SW gate only & 0.889\,$\pm$\,0.002 & 0.969 & 0.843 & 0.857 & 3000 & 142.7 & +0.000 & 1 \\
+revised, score-only test & 0.828\,$\pm$\,0.010 & 0.936 & 0.742 & 0.846 & 1300 & 62.1 & -0.061 & 0.0215 \\
+revised, projections-only & 0.889\,$\pm$\,0.003 & 0.969 & 0.842 & 0.860 & 3000 & 150.0 & +0.000 & 1 \\
+revised, no adaptation & 0.664\,$\pm$\,0.002 & 0.855 & 0.375 & 0.659 & 0 & 0.0 & -0.225 & 0.0215 \\
+\bottomrule
+\end{tabular}}
+\end{table*}

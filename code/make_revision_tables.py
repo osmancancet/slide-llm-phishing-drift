@@ -69,6 +69,7 @@ def detection(e):
 
 
 def write(name, s):
+    s = s.replace("(KBS version)", "(earlier design)")
     (TAB / name).write_text(s)
 
 
@@ -89,14 +90,14 @@ MAIN = list(dict.fromkeys(S[S.group == "main"].name))
 ORDER = ["TFIDF-LR", "Online-TFIDF-SGD", "Static-FT", "Static-MLP", "Online-MLP", "ADWIN-Retrain", "KSWIN-Score",
          "Budget-Uniform-MLP", "Budget-Uncertainty-MLP", "Budget-Uniform-TFIDF", "Budget-Uncertainty-TFIDF",
          "Budget-Random", "Budget-Oracle", "Budget-Random-TFIDF", "Budget-Oracle-TFIDF",
-         "SLIDE (KBS version)", "SLIDE", "SLIDE-TFIDF"]
+         "SLIDE (KBS version)", "SLIDE", "SLIDE+replay", "SLIDE-TFIDF"]
 MAIN = [m for m in ORDER if m in MAIN]
 rows = []
 for m in MAIN:
     e = ev("main", m)
     lab, upd = e.stream_labels.mean(), e.events.apply(len).mean()
     online = m in ("Online-TFIDF-SGD", "Online-MLP")
-    r = [m.replace("SLIDE", "\\textbf{SLIDE}") if m.startswith("SLIDE") else m]
+    r = [m.replace("SLIDE", "\\textbf{SLIDE}") if m in ("SLIDE", "SLIDE+replay", "SLIDE-TFIDF") else m]
     for k in ("precision", "recall", "mcc", "pr_auc", "fpr"):
         x = sm("main", m, k)
         r.append(ci(x))
@@ -137,8 +138,8 @@ for m in MAIN:
     cells = []
     for kind in ("recall", "fpr"):
         for s_, _ in SL:
-            v = g.loc[s_, kind] if s_ in g.index else np.nan
-            N[f"slice|{m}|{s_}|{kind}"] = None if np.isnan(v) else float(v)
+            v = g.loc[s_, kind] if s_ in g.index and not (kind == "recall" and "human" in s_) else np.nan
+            N[f"slice|{m}|{s_.replace(':', '_')}|{kind}"] = None if np.isnan(v) else float(v)
             cells.append("--" if np.isnan(v) else f"{v:.3f}")
     rows.append([m] + cells)
 hdr = ["Method"] + [f"Rec. {b}" for _, b in SL] + [f"FPR {b}" for _, b in SL]
@@ -152,7 +153,8 @@ ref = "SLIDE"
 comp = [m for m in MAIN if m != ref]
 Mseed = np.column_stack([sm("main", m) for m in MAIN])
 chi, pf, ranks, cd = friedman_nemenyi(Mseed)
-N.update(friedman_chi2=chi, friedman_p=pf, nemenyi_cd=cd, n_methods=len(MAIN))
+N.update(friedman_chi2=chi, friedman_p=pf, nemenyi_cd=cd, n_methods=len(MAIN), n_comp=len(comp),
+         p_min_holm=len(comp) * 2 / 1024)
 res = []
 for m in comp:
     a, b = sm("main", ref), sm("main", m)
@@ -199,6 +201,16 @@ write("rev_ablation.tex", table(
     star=True))
 
 
+# effect of alpha-spending on detection delay (same update, per-test alpha vs harmonic schedule)
+_d = {}
+for nm, key in (("revised + alpha-spending", "harm"), ("warm (revised update)", "none")):
+    _d[key] = np.array([detection(r)[0] for _, r in ev("abl", nm).iterrows()], float)
+N["spend|delay|harm"] = float(np.nanmean(_d["harm"])); N["spend|delay|none"] = float(np.nanmean(_d["none"]))
+_diff = _d["harm"] - _d["none"]
+N["spend|n_later"] = float(np.sum(_diff > 0)); N["spend|n_earlier"] = float(np.sum(_diff < 0))
+N["spend|n_bound"] = float(_diff.size); N["spend|max_later"] = float(np.nanmax(_diff))
+N["spend|miss"] = float(np.isnan(_d["harm"]).sum())
+
 # ------------------------------------------------------------------ K, budget, delay
 def det_stats(g, n):
     e = ev(g, n)
@@ -231,7 +243,7 @@ for K in (2, 4, 8, 16, 32, 64, 128, 256, 512):
     rows.append([K, ci(x), f"{d['labels']:.0f}", f"{d['alarms']:.1f}", f"{d['delay']:.2f}", f"{d['miss']:.2f}",
                  f"{d['extra']:.1f}", f"{d['frac_sig']:.2f}", f"{d['w1_cv']:.2f}", f"{d['t_detect']:.1f}"])
 write("rev_K.tex", table(
-    "Number of random projections $K$ (revised SLIDE, 10 realisations, six boundaries per stream). Delay: batches from a "
+    "Number of random projections $K$ (revised SLIDE, 5 realisations, six boundaries per stream). Delay: batches from a "
     "boundary to the first alarm in the new segment; miss: share of boundaries without an alarm before the next boundary; "
     "extra: further alarms per stream; sig.: share of projections individually significant at the Holm level in alarming "
     "tests; CV$_{W_1}$: coefficient of variation of the per-projection $W_1$ distances; $t$: total test time (s).",
@@ -252,7 +264,7 @@ for nl in (50, 100, 250, 500, 1000):
         cells += [ci(x), f"{sm('budget', n, 'mcc', 'G').mean():.3f}", f"{e.stream_labels.mean():.0f}"]
     rows.append(cells)
 write("rev_budget.tex", table(
-    "Label window $n_\\ell$ bought per alarm (10 realisations). SLIDE updates the transformer head; SLIDE-TFIDF uses the "
+    "Label window $n_\\ell$ bought per alarm (5 realisations). SLIDE updates the transformer head; SLIDE-TFIDF uses the "
     "same alarms to update an online TF-IDF learner.", "tab:rev-budget",
     ["$n_\\ell$", "SLIDE MCC", "MCC (G)", "Labels", "SLIDE-TFIDF MCC", "MCC (G)", "Labels"], rows))
 
@@ -262,12 +274,12 @@ rows = []
 for m in DM:
     cells = [m]
     for d in DL:
-        x = sm("main", m) if d == "2" else sm("delay", f"{m} D={d}")
+        x = sm("main", m)[:5] if d == "2" else sm("delay", f"{m} D={d}")
         N[f"delay|{m}|{d}"] = float(x.mean()) if len(x) else None
         cells.append(f"{x.mean():.3f}" if len(x) else "--")
     rows.append(cells)
 write("rev_delay.tex", table(
-    "MCC under label delay (10 realisations). $D$ is the delay in batches of 250 messages; rand$a$--$b$ draws each "
+    "MCC under label delay (5 realisations, $r=0,\\dots,4$). $D$ is the delay in batches of 250 messages; rand$a$--$b$ draws each "
     "batch's delay uniformly from $\\{a,\\dots,b\\}$. $D=2$ is the default of Table~\\ref{tab:rev-main}.",
     "tab:rev-delay", ["Method"] + [("$D$=" + d) if not d.startswith("rand") else d.replace("rand", "rand ") for d in DL],
     rows))
@@ -281,7 +293,7 @@ for m in DSM:
     cells = [m]
     for d in DS:
         if d == "abrupt":
-            x, lab = sm("main", m), ev("main", m).stream_labels.mean()
+            x, lab = sm("main", m)[:5], ev("main", m).stream_labels.values[:5].mean()
         else:
             x, lab = sm("design", f"{d}|{m}"), ev("design", f"{d}|{m}").stream_labels.mean()
         N[f"design|{m}|{d}"] = float(x.mean()) if len(x) else None
@@ -289,7 +301,7 @@ for m in DSM:
         cells += [f"{x.mean():.3f}" if len(x) else "--", f"{lab:.0f}" if len(x) else "--"]
     rows.append(cells)
 write("rev_designs.tex", table(
-    "MCC and labels under four stream designs (10 realisations each): abrupt (default), gradual (2{,}000-message mixing "
+    "MCC and labels under four stream designs (5 realisations each, $r=0,\\dots,4$): abrupt (default), gradual (2{,}000-message mixing "
     "zones), variable segment lengths, and permuted segment order.", "tab:rev-designs",
     ["Method"] + [c for d in DS for c in (f"{d} MCC", "Lab.")], rows, star=True))
 
@@ -330,7 +342,7 @@ write("rev_real.tex", table(
 VAR = ["orig", "T1_para", "T2_char_0.10", "T3_pad_200", "T3_pad", "T3_pad_800", "T4_suffix", "T5_sandwich"]
 VN = ["orig.", "T1", "T2", "T3-200", "T3-400", "T3-800", "T4", "T5"]
 STS = ST[ST.sgrp == "S1"]
-SHOW = [("main", m) for m in ("TFIDF-LR", "Online-TFIDF-SGD", "Static-MLP", "ADWIN-Retrain", "SLIDE", "SLIDE-TFIDF",
+SHOW = [("main", m) for m in ("TFIDF-LR", "Online-TFIDF-SGD", "Static-MLP", "ADWIN-Retrain", "SLIDE", "SLIDE+replay", "SLIDE-TFIDF",
                               "SLIDE (KBS version)")] + [("chunk", c) for c in ("Static-MLP chunked",
                                                                                   "ADWIN-Retrain chunked", "SLIDE chunked")]
 rows = []
@@ -357,7 +369,7 @@ for g, m in SHOW:
     for sg in sorted(S2.sgrp.unique()):
         for v in ("orig", "T2_char_0.10", "T3_pad"):
             val = d.get((sg, v), np.nan)
-            N[f"stress2|{m}|{sg}|{v}"] = None if np.isnan(val) else float(val)
+            N[f"stress2|{m}|{sg.replace(':', '_')}|{v}"] = None if np.isnan(val) else float(val)
             cells.append("--" if np.isnan(val) else f"{val:.3f}")
     rows.append([m] + cells)
 SG = sorted(S2.sgrp.unique())
@@ -365,6 +377,34 @@ write("rev_stress2.tex", table(
     "Detection rate on a second held-out pool never streamed: 200 PhishFuzzer LLM phishing and 200 machine-translated "
     "Spanish phishing messages (end of stream, mean over 10 realisations).", "tab:rev-stress2",
     ["Method"] + [f"{sg.split(':')[1][:10]} {v}" for sg in SG for v in ("orig.", "T2", "T3")], rows, star=True))
+
+# ------------------------------------------------------------------ retention: held-out pool before and after the stream
+rows = []
+for m in MAIN:
+    d = ST[(ST.group == "main") & (ST.name == m) & (ST.variant == "orig")]
+    cells = [m]
+    for sg, w in (("S1", "t0"), ("S1", "preE"), ("S1", "end")):
+        v = d[(d.sgrp == sg) & (d.when == w)].detect.mean()
+        N[f"ret|{m}|{w}"] = float(v)
+        cells.append(f"{v:.3f}")
+    v0 = N[f"ret|{m}|preE"]
+    N[f"ret|{m}|drop"] = float(v0 - N[f"ret|{m}|end"])
+    cells.append(f"{N[f'ret|{m}|end'] - v0:+.3f}")
+    rows.append(cells)
+    if m in ("Budget-Uniform-MLP", "Budget-Oracle-TFIDF", "Static-FT"):
+        rows.append("MID")
+write("rev_retention.tex", table(
+    "Retention: detection rate on 600 held-out malicious messages from the sources of segments B--D (400 GPTGen and "
+    "SpearGen, 200 TREC and CEAS-08), never streamed, scored by "
+    "each detector as it stands before the stream ($t_0$), just before segment E and at the end of the stream "
+    "(mean over 10 realisations). $\\Delta$: end minus pre-E.", "tab:rev-retention",
+    ["Method", "$t_0$", "pre-E", "end", "$\\Delta$"], rows))
+
+# extra constants from the original audit and latency runs
+_a = json.load(open(RESULTS / "leakage_audit.json"))
+N["auth_probe"] = float(_a["authorship_probe_f1macro"])
+_l = json.load(open(RESULTS / "latency.json"))
+N["lat_enc_ms"] = float(_l["encoder_ms_4t"]); N["lat_lm_ms"] = float(_l["surprisal_lm_ms_4t"])
 
 # ------------------------------------------------------------------ figure: batch MCC
 fig, ax = plt.subplots(figsize=(7.2, 2.7))
@@ -388,3 +428,22 @@ fig.savefig(FIG / "rev_trajectory.png", dpi=200)
 
 json.dump(N, open(R / "numbers.json", "w"), indent=1, default=float)
 print(len(N), "numbers")
+
+# ------------------------------------------------------------------ pools added in the revision
+from slide.config import CACHE
+tx = pd.read_parquet(CACHE / "texts_v2.parquet")
+tx = tx[tx.variant == "orig"]
+rows = []
+for pool, nm in (("F", "segment F (LLM)"), ("F_hum", "segment F (human)"), ("G", "segment G"),
+                 ("STRESS2", "stress pool 2"), ("NULLH", "real-drift probe")):
+    d = tx[tx.pool == pool]
+    src = d.groupby(["source", "label"]).size().unstack(fill_value=0)
+    desc = "; ".join(f"{s} {int(r.get(0, 0))}/{int(r.get(1, 0))}" for s, r in src.iterrows())
+    nl, nm1 = int((d.label == 0).sum()), int((d.label == 1).sum())
+    N[f"pool|{pool}|legit"], N[f"pool|{pool}|mal"] = nl, nm1
+    rows.append([nm, nl, nm1, desc.replace("_", "\\_")])
+write("rev_pools.tex", table("Pools added in this revision (legitimate/malicious counts), disjoint from each other and from "
+                             "the pools of Table~\\ref{tab:pools}. One PhishFuzzer variant is kept per seed message.",
+                             "tab:rev-pools", ["Pool", "Legit.", "Malic.", "Sources (legit./malic.)"], rows,
+                             align="lrrp{8.5cm}"))
+json.dump(N, open(R / "numbers.json", "w"), indent=1, default=float)
